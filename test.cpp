@@ -77,7 +77,7 @@ int main(){
 	}
 	
 	for (int i=0;i<test_img->ImgNum;i++){
-		float e;
+		float e=0;
 		input_minst(test_img->ImgPtr[i]);
 		CNN.calculate();
 		for (int j=0;j<10;j++){
