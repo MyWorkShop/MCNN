@@ -232,11 +232,11 @@ public:
 		for (int i=0;i<num;i++){
 			for (int j=0;j<m;j++){
 				for (int k=0;k<n;k++){
-					d.d[i][j][k]=max(i,j,k);
+					d.d[i][j][k]=beta.d[i][j][k]*max(i,j,k);
 			#ifdef	_DEBUG_IN_MP_
 				printf("D:[%d][%d][%d]=%f\n",i,j,k,d.d[i][j][k]);
 			#endif
-					y.d[i][j][k]=sigmoid::y(beta.d[i][j][k]*d.d[i][j][k]+bias.d[i][j][k]);
+					y.d[i][j][k]=sigmoid::y(d.d[i][j][k]+bias.d[i][j][k]);
 					
 			#ifdef	_DEBUG_IN_MP_
 				printf("y:[%d][%d][%d]=%f\n",i,j,k,y.d[i][j][k]);
@@ -568,7 +568,7 @@ void Convolutional_Layer::change_weight(float eta){
 						float sum=0;
 						for (int l_2=0;l_2<(last_m-a);l_2++){
 							for (int l_3=0;l_3<(last_n-b);l_3++){
-								sum+=((Input_Layer*)last_layer)->y.d[l_1][l_2+j][l_3+k]*dleta.d[i][j][k];
+								sum+=((Input_Layer*)last_layer)->y.d[l_1][l_2+j][l_3+k]*w.d[i][l_1][j][k]*dleta.d[i][j][k];
 							}
 						}
 						w.d[i][l_1][j][k] +=eta*sum;
@@ -589,7 +589,7 @@ void Convolutional_Layer::change_weight(float eta){
 						float sum=0;
 						for (int l_2=0;l_2<(last_m-a);l_2++){
 							for (int l_3=0;l_3<(last_n-b);l_3++){
-								sum+=((Max_Pooling_Layer*)last_layer)->y.d[l_1][l_2+j][l_3+k]*dleta.d[i][j][k];
+								sum+=((Max_Pooling_Layer*)last_layer)->y.d[l_1][l_2+j][l_3+k]*w.d[i][l_1][j][k]*dleta.d[i][j][k];
 							}
 						}
 						w.d[i][l_1][j][k] +=eta*sum;
