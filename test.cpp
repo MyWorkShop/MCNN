@@ -10,6 +10,7 @@
 #include "CNN.h"
 #include "MINST/MINST.h"
 
+float right=0;
 
 Convolutional_Neural_Network CNN;
 
@@ -21,7 +22,17 @@ void input_minst(MinstImg input){
 	}
 }
 
-
+int sort(float *data){
+	int id=0;
+	float max=data[0];
+	for (int i=0;i<10;i++){
+		if (data[i]>max){
+			max=data[i];
+			id=i;
+		}
+	}
+	return id;
+}
 
 int main(){
 	printf("===========\nMINST_READ\n===========\n");
@@ -69,23 +80,37 @@ int main(){
 	
 	std::cout<<std::endl;
 	for (int i=0;i<train_img->ImgNum;i++){
-		if ((i%100)==0){
-			std::cerr<<i<<std::endl;
+		if ((i%25)==0){
+			printf("%d\n",i);
 		}
 		input_minst(train_img->ImgPtr[i]);
-		CNN.train(train_label->LabelPtr[i].LabelData);
+		do {
+			CNN.train(train_label->LabelPtr[i].LabelData);
+			CNN.calculate();
+//			for(int j=0;j<10;j++)
+//			{
+//				printf("%f|",train_label->LabelPtr[i].LabelData[j]);
+//			}
+//			printf("\n");
+//			for(int j=0;j<10;j++)
+//			{
+//				printf("%f|",CNN.FC_9.y[j]);
+//			}
+//			printf("\n");
+//			printf("%d,%d\n",sort(train_label->LabelPtr[i].LabelData),sort(CNN.FC_9.y));
+		}while (sort(train_label->LabelPtr[i].LabelData)!=sort(CNN.FC_9.y));
+		
 	}
 	
 	for (int i=0;i<test_img->ImgNum;i++){
-		float e=0;
 		input_minst(test_img->ImgPtr[i]);
 		CNN.calculate();
-		for (int j=0;j<10;j++){
-			e+=(test_label->LabelPtr[i].LabelData[j]-CNN.FC_9.y[j])*(test_label->LabelPtr[i].LabelData[j]-CNN.FC_9.y[j]);
+		if (sort(test_label->LabelPtr[i].LabelData)!=sort(CNN.FC_9.y)){
+//			printf("good\n");
+			right+=1;
 		}
-		std::cout<<e<<',';
 	}
-	
+	printf("%f\n",right);
 	std::cout<<std::endl<<"OK!"<<std::endl;
 	
 }
