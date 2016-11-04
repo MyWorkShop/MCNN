@@ -7,6 +7,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <assert.h>
+#include <time.h>
 #include "CNN.h"
 #include "MINST/MINST.h"
 
@@ -35,6 +36,7 @@ int sort(float *data){
 }
 
 int main(){
+	int timestart;
 	printf("===========\nMINST_READ\n===========\n");
 	printf("--\nReading training images.\n");
 	ImgArr train_img = read_Img("./MINST/train-images.idx3-ubyte");
@@ -59,10 +61,13 @@ int main(){
 	printf("Read testing lables finished.\n");
 	printf("Testing lables data:\n");
 	printf("%d lables.\n",test_label->LabelNum);
-	
+
 	printf("===========\nCNN_INIT\n===========\n");
+
+	srand(time(NULL));
+
 	CNN.init();
-	
+
 #ifdef	_DEBUG_MINST_
 	printf("===========\nMINST_SHOW\n===========\n");
 	printf("train_img\n");
@@ -77,40 +82,66 @@ int main(){
 		std::cout<<train_label->LabelPtr[0].LabelData[i]<<'|';
 	}
 #endif
-	
+
 	std::cout<<std::endl;
-	for (int i=0;i<train_img->ImgNum;i++){
-		if ((i%25)==0){
-			printf("%d\n",i);
-		}
+	for(int j=0;j<1000;j++){
+	int time_s=time(NULL);
+	for (int i=0;i<60000;i++){
+		float error=0;
 		input_minst(train_img->ImgPtr[i]);
-		do {
-			CNN.train(train_label->LabelPtr[i].LabelData);
+		CNN.train(train_label->LabelPtr[i].LabelData,0.5,0.5,0.5);
+		if ((i%5000)==0){
+			std::cerr<<i<<'|'<<sort(train_label->LabelPtr[i].LabelData)<<'|'<<(time(NULL)-time_s)<<std::endl;
+			for(int l=0;l<500;l++){
+//			float erro=0;
+			input_minst(test_img->ImgPtr[l]);
 			CNN.calculate();
 //			for(int j=0;j<10;j++)
 //			{
-//				printf("%f|",train_label->LabelPtr[i].LabelData[j]);
+//				erro+=(test_label->LabelPtr[0].LabelData[j]-CNN.FC_9.y[j])*(test_label->LabelPtr[0].LabelData[j]-CNN.FC_9.y[j]);
 //			}
-//			printf("\n");
-//			for(int j=0;j<10;j++)
-//			{
-//				printf("%f|",CNN.FC_9.y[j]);
-//			}
-//			printf("\n");
-//			printf("%d,%d\n",sort(train_label->LabelPtr[i].LabelData),sort(CNN.FC_9.y));
-		}while (sort(train_label->LabelPtr[i].LabelData)!=sort(CNN.FC_9.y));
-		
-	}
-	
-	for (int i=0;i<test_img->ImgNum;i++){
-		input_minst(test_img->ImgPtr[i]);
-		CNN.calculate();
-		if (sort(test_label->LabelPtr[i].LabelData)!=sort(CNN.FC_9.y)){
-//			printf("good\n");
-			right+=1;
+			if(sort(test_label->LabelPtr[l].LabelData)==sort(CNN.FC_9.y)){
+				right=right+1;
+			}
+//			std::cout<<erro<<'|'<<sort(test_label->LabelPtr[0].LabelData)<<'|'<<sort(CNN.FC_9.y)<<'|'<<sort(train_label->LabelPtr[i].LabelData)<<std::endl;
+			}
+			std::cout<<right/500<<std::endl;
+			right=0;
+			time_s=time(NULL);
 		}
 	}
-	printf("%f\n",right);
+
+//	for (int i=0;i<3;i++){
+//		input_minst(test_img->ImgPtr[i]);
+//		CNN.calculate();
+//		for(int j=0;j<CNN.C_1.m;j++){
+//			for(int k=0;k<CNN.C_1.n;k++){
+//				std::cout<<CNN.C_1.y.d[0][j][k]<<'|';
+//			}
+//			std::cout<<std::endl;
+//		}
+//		std::cout<<"==================="<<std::endl;
+//		for(int j=0;j<CNN.MP_2.m;j++)
+		{
+//			for(int k=0;k<CNN.MP_2.n;k++){
+//				printf("%f,",CNN.MP_2.y.d[0][j][k]);
+//			}
+
+		}
+//		std::cout<<"==================="<<std::endl;
+//		for(int j=0;j<10;j++)
+		{
+//			printf("%f,",CNN.FC_9.y[j]);
+		}
+//		std::cout<<"==================="<<std::endl;
+//		std::cout<<'\n';
+//		if (sort(test_label->LabelPtr[i].LabelData)==sort(CNN.FC_8.y)){
+//			printf("good\n");
+//			right+=1;
+//		}
+//	}
+//	printf("%f\n",right);
+	}
 	std::cout<<std::endl<<"OK!"<<std::endl;
-	
+
 }
