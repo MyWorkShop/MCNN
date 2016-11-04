@@ -15,7 +15,11 @@ class Fully_Connected_Layer;
 //随机函数
 
 float R(){
-	return 0.1*sqrt(-2*log(rand()/(RAND_MAX+1.0)))*cos(2*3.14159265*rand()/(RAND_MAX+1.0));
+	if ((rand()%2)==0){
+		return -1;
+	}else{
+		return 1;
+	}
 }
 
 float r(){
@@ -353,7 +357,7 @@ public:
 			for (int i=0;i<num;i++){
 				dleta.d[i]=sigmoid::df(y[i])*(d[i]-y[i]);
 			}
-		}else if (max_pooling==false){
+		}else{
 //			std::cout<<"max"<<std::endl;
 			for (int i=0;i<num;i++){
 				float sum=0;
@@ -362,16 +366,6 @@ public:
 				}
 				dleta.d[i]=sum*sigmoid::df(y[i]);
 			}
-		}else{
-//			std::cout<<"max:"<<max_pooling<<std::endl;
-			for (int i=0;i<num;i++){
-				float sum=0;
-				for (int j=0;j<next_num;j++) {
-					sum=sum+((mat*)((Fully_Connected_Layer*)next_layer)->w)->d[i][j]*((Fully_Connected_Layer*)next_layer)->dleta.d[j];
-				}
-				dleta.d[i]=sum*sigmoid::df(y[i]);
-			}
-
 		}
 	}
 
@@ -620,27 +614,43 @@ public:
 	Max_Pooling_Layer MP_2;
 	Convolutional_Layer C_3;
 	Max_Pooling_Layer MP_4;
-	Convolutional_Layer C_5;
-	Max_Pooling_Layer MP_6;
 	Fully_Connected_Layer FC_7;
 	Fully_Connected_Layer FC_8;
 	Fully_Connected_Layer FC_9;
 
+//	void init(){
+//		INPUT.init(1,28,28);
+//		C_1.init_1((void*)&INPUT,8,3,3,true);
+//		MP_2.init_1(&C_1,2,2);
+//		C_1.init_2(&MP_2);
+//		C_3.init_1((void*)&MP_2,16,2,2,false);
+//		MP_2.init_2(&C_3,false);
+//		MP_4.init_1(&C_3,2,2);
+//		C_3.init_2(&MP_4);
+//		C_5.init_1((void*)&MP_4,32,3,3,false);
+//		MP_4.init_2(&C_5,false);
+//		MP_6.init_1(&C_5,2,2);
+//		C_5.init_2(&MP_6);
+//		FC_7.init_1(&MP_6,128,true);
+//		MP_6.init_2(&FC_7,true);
+//		FC_8.init_1(&FC_7,10,false);
+//		FC_7.init_2(&FC_8);
+//		FC_9.init_1(&FC_8,10,false);
+//		FC_8.init_2(&FC_9);
+//		FC_9.init_2(NULL);
+//	}
+
 	void init(){
 		INPUT.init(1,28,28);
-		C_1.init_1((void*)&INPUT,8,3,3,true);
+		C_1.init_1((void*)&INPUT,8,5,5,true);
 		MP_2.init_1(&C_1,2,2);
 		C_1.init_2(&MP_2);
-		C_3.init_1((void*)&MP_2,16,2,2,false);
+		C_3.init_1((void*)&MP_2,16,3,3,false);
 		MP_2.init_2(&C_3,false);
 		MP_4.init_1(&C_3,2,2);
 		C_3.init_2(&MP_4);
-		C_5.init_1((void*)&MP_4,32,3,3,false);
-		MP_4.init_2(&C_5,false);
-		MP_6.init_1(&C_5,2,2);
-		C_5.init_2(&MP_6);
-		FC_7.init_1(&MP_6,128,true);
-		MP_6.init_2(&FC_7,true);
+		FC_7.init_1(&MP_4,128,true);
+		MP_4.init_2(&FC_7,true);
 		FC_8.init_1(&FC_7,10,false);
 		FC_7.init_2(&FC_8);
 		FC_9.init_1(&FC_8,10,false);
@@ -701,11 +711,11 @@ public:
 	#ifdef	_DEBUG_Y_
 		std::cout<<"C_5"<<std::endl;
 	#endif
-		C_5.calculate_y();
+//		C_5.calculate_y();
 	#ifdef	_DEBUG_Y_
 		std::cout<<"MP_6"<<std::endl;
 	#endif
-		MP_6.calculate_y();
+//		MP_6.calculate_y();
 	#ifdef	_DEBUG_Y_
 		std::cout<<"FC_7"<<std::endl;
 	#endif
@@ -723,7 +733,7 @@ public:
 	#endif
 	}
 
-	void train(float *y,float eta){
+	void train(float *y,float eta_c,float eta_mp,float eta_fc){
 		calculate();
 	#ifdef	_DEBUG_T_
 		std::cout<<"FC_9"<<std::endl;
@@ -740,11 +750,11 @@ public:
 	#ifdef	_DEBUG_T_
 		std::cout<<"MP_6"<<std::endl;
 	#endif
-		MP_6.calculate_dleta();
+//		MP_6.calculate_dleta();
 	#ifdef	_DEBUG_T_
 		std::cout<<"C_5"<<std::endl;
 	#endif
-		C_5.calculate_dleta();
+//		C_5.calculate_dleta();
 	#ifdef	_DEBUG_T_
 		std::cout<<"MP_4"<<std::endl;
 	#endif
@@ -767,38 +777,38 @@ public:
 	#ifdef	_DEBUG_T_
 		std::cout<<"FC_9"<<std::endl;
 	#endif
-		FC_9.change_weight(eta);
+		FC_9.change_weight(eta_fc);
 	#ifdef	_DEBUG_T_
 		std::cout<<"FC_8"<<std::endl;
 	#endif
-		FC_8.change_weight(eta);
+		FC_8.change_weight(eta_fc);
 	#ifdef	_DEBUG_T_
 		std::cout<<"FC_7"<<std::endl;
 	#endif
-		FC_7.change_weight(eta);
+		FC_7.change_weight(eta_fc);
 	#ifdef	_DEBUG_T_
 		std::cout<<"MP_6"<<std::endl;
 	#endif
-		MP_6.change_weight(eta);
+//		MP_6.change_weight(eta);
 	#ifdef	_DEBUG_T_
 		std::cout<<"C_5"<<std::endl;
 	#endif
-		C_5.change_weight(eta);
+//		C_5.change_weight(eta);
 	#ifdef	_DEBUG_T_
 		std::cout<<"MP_4"<<std::endl;
 	#endif
-		MP_4.change_weight(eta);
+		MP_4.change_weight(eta_mp);
 	#ifdef	_DEBUG_T_
 		std::cout<<"C_3"<<std::endl;
 	#endif
-		C_3.change_weight(eta);
+		C_3.change_weight(eta_c);
 	#ifdef	_DEBUG_T_
 		std::cout<<"MP_2"<<std::endl;
 	#endif
-		MP_2.change_weight(eta);
+		MP_2.change_weight(eta_mp);
 	#ifdef	_DEBUG_T_
 		std::cout<<"C_1"<<std::endl;
 	#endif
-		C_1.change_weight(4.0*eta);
+		C_1.change_weight(eta_c);
 	}
 };
