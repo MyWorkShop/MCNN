@@ -89,7 +89,7 @@ int main(){
 	for (int i=0;i<60000;i++){
 		float error=0;
 		input_minst(train_img->ImgPtr[i]);
-		CNN.train(train_label->LabelPtr[i].LabelData,0.5,0.5,0.5);
+		CNN.train(train_label->LabelPtr[i].LabelData,0.0005,0.0005,0.0005);
 		if ((i%5000)==0){
 			std::cerr<<i<<'|'<<sort(train_label->LabelPtr[i].LabelData)<<'|'<<(time(NULL)-time_s)<<std::endl;
 			for(int l=0;l<500;l++){
