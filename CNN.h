@@ -572,7 +572,7 @@ void Convolutional_Layer::change_weight(float eta){
 								sum=sum+((Input_Layer*)last_layer)->y.d[l_1][l_2+j][l_3+k]*w.d[i][l_1][j][k]*dleta.d[i][j][k];
 							}
 						}
-						w.d[i][l_1][j][k] +=eta*sum;
+						w.d[i][l_1][j][k] +=eta*(sum/((last_m-a)*(last_n-b)));
 					}
 				}
 			}
@@ -593,7 +593,7 @@ void Convolutional_Layer::change_weight(float eta){
 								sum=sum+((Max_Pooling_Layer*)last_layer)->y.d[l_1][l_2+j][l_3+k]*w.d[i][l_1][j][k]*dleta.d[i][j][k];
 							}
 						}
-						w.d[i][l_1][j][k] +=eta*sum;
+						w.d[i][l_1][j][k] +=eta*(sum/((last_m-a)*(last_n-b)));
 					}
 				}
 			}
