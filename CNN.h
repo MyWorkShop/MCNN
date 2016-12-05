@@ -162,11 +162,13 @@ public:
 class Convolutional_Layer{
 public:
 	tube w;
+	tube d_w;
 	int m,n;
 	int a,b;
 	cube y;
 	cube dleta;
 	cube bias;
+	cube d_bias;
 	int num;
 	void *last_layer;
 	int last_m,last_n;
@@ -196,6 +198,7 @@ public:
 	}
 
 	void calculate_dleta();
+	void calculate_d_w();
 
 	void change_weight(float eta);
 };
@@ -203,6 +206,7 @@ public:
 class Max_Pooling_Layer{
 public:
 	cube beta,bias;
+	cube d_beta,d_bias;
 	Convolutional_Layer *last_layer;
 	int m,n;
 	int a,b;
@@ -258,14 +262,26 @@ public:
 	}
 
 	void calculate_dleta();
+	
+	void calculate_d_w(){
+		for (int i=0;i<num;i++){
+			for (int j=0;j<m;j++){
+				for (int k=0;k<n;k++){
+					d_beta.d[i][j][k]+=dleta.d[i][j][k];
+					d_bias.d[i][j][k]+=dleta.d[i][j][k];
+				}
+			}
+		}
+	}
 
 	void change_weight(float eta){
 		for (int i=0;i<num;i++){
 			for (int j=0;j<m;j++){
 				for (int k=0;k<n;k++){
-//					std::cout<<i<<','<<j <<','<<k<<std::endl;
-					beta.d[i][j][k]+=eta*dleta.d[i][j][k];
-					bias.d[i][j][k]+=eta*dleta.d[i][j][k];
+					beta.d[i][j][k]+=eta*d_beta.d[i][j][k];
+					bias.d[i][j][k]+=eta*d_bias.d[i][j][k];
+					d_beta.d[i][j][k]=0;
+					d_bias.d[i][j][k]=0;
 				}
 			}
 		}
@@ -275,7 +291,9 @@ public:
 class Fully_Connected_Layer{
 public:
 	void *w;
+	void *d_w;
 	array bias;
+	array d_bias;
 	int last_m,last_n;
 	int last_num;
 	int next_num;
@@ -294,17 +312,22 @@ public:
 		y=new float[num];
 		if (max_pooling==true){
 			w=new cube;
+			d_w=new cube;
 			last_m=((Max_Pooling_Layer*)last_layer)->m;
 			last_n=((Max_Pooling_Layer*)last_layer)->n;
 			last_num=((Max_Pooling_Layer*)last_layer)->num;
 			((tube*)w)->init(last_num,last_m,last_n,n,NULL);
+			((tube*)d_w)->init(last_num,last_m,last_n,n,NULL);
 		}else{
 			w=new mat;
+			d_w=new mat;
 			last_num=((Fully_Connected_Layer*)last_layer)->num;
 			((mat*)w)->init(((Fully_Connected_Layer*)last_layer)->num,n,NULL);
+			((mat*)d_w)->init(((Fully_Connected_Layer*)last_layer)->num,n,NULL);
 		}
 		dleta.init(num);
 		bias.init(num);
+		d_bias.init(num);
 	#ifdef _DEBUG_INIT_
 		std::cout<<"--\nFully_Connected_Layer Init Stage 1:"<<std::endl;
 		std::cout<<"n,last_num,max_pooling"<<std::endl;
@@ -368,30 +391,54 @@ public:
 			}
 		}
 	}
-
-	void change_weight(float eta){
+	
+	void calculate_d_w(){
 		if(max_pooling==false){
-//			std::cout<<"wtf"<<std::endl;
 			for (int i=0;i<num;i++){
 				for (int j=0;j<last_num;j++) {
-					((mat*)w)->d[j][i]+=eta*dleta.d[i]*((Fully_Connected_Layer*)last_layer)->y[j];
+					((mat*)d_w)->d[j][i]+=dleta.d[i]*((Fully_Connected_Layer*)last_layer)->y[j];
 				}
-				bias.d[i]+=eta*dleta.d[i];
+				d_bias.d[i]+=dleta.d[i];
 			}
 		}else{
-//			std::cout<<"maxxxx"<<std::endl;
 			for (int i=0;i<num;i++){
-//				std::cout<<i<<std::endl;
 				for (int j=0;j<last_num;j++){
 					for(int k=0;k<last_m;k++){
 						for(int l=0;l<last_n;l++){
-							((tube*)w)->d[j][k][l][i]+=eta*dleta.d[i]*((Max_Pooling_Layer*)last_layer)->y.d[j][k][l];
+							((tube*)d_w)->d[j][k][l][i]+=dleta.d[i]*((Max_Pooling_Layer*)last_layer)->y.d[j][k][l];
 						}
 					}
 				}
-				bias.d[i]+=eta*dleta.d[i];
+				d_bias.d[i]+=dleta.d[i];
 			}
 		}
+	}
+
+	void change_weight(float eta){
+		if(max_pooling==false){
+			for (int i=0;i<num;i++){
+				for (int j=0;j<last_num;j++) {
+					((mat*)w)->d[j][i]+=eta*((mat*)d_w)->d[j][i];
+					((mat*)d_w)->d[j][i]=0;
+				}
+				bias.d[i]+=eta*d_bias.d[i];
+				d_bias.d[i]=0;
+			}
+		}else{
+			for (int i=0;i<num;i++){
+				for (int j=0;j<last_num;j++){
+					for(int k=0;k<last_m;k++){
+						for(int l=0;l<last_n;l++){
+							((tube*)w)->d[j][k][l][i]+=eta*((tube*)d_w)->d[j][k][l][i];
+							((tube*)d_w)->d[j][k][l][i]=0;
+						}
+					}
+				}
+				bias.d[i]+=eta*d_bias.d[i];
+				d_bias.d[i]=0;
+			}
+		}
+	
 	}
 };
 
@@ -415,7 +462,9 @@ void Convolutional_Layer::init_1(void *last,int num_pics,int a_core,int b_core,b
 	m=last_m-a+1;
 	n=last_n-a+1;
 	w.init(num,last_num,a,b,NULL);
-	bias.init(num,m,n);
+	bias.init(num,m,n,NULL);
+	d_w.init(num,last_num,a,b);
+	d_bias.init(num,m,n);
 	y.init(num,m,n);
 	dleta.init(num,m,n);
 	#ifdef _DEBUG_INIT_
@@ -464,6 +513,8 @@ void Max_Pooling_Layer::init_1(Convolutional_Layer *last,int a_core,int b_core){
 	last_layer=last;
 	beta.init(num,m,n,NULL);
 	bias.init(num,m,n,NULL);
+	d_beta.init(num,m,n);
+	d_bias.init(num,m,n);
 	y.init(num,m,n);
 	d.init(num,m,n);
 	dleta.init(num,m,n);
@@ -560,7 +611,7 @@ void Convolutional_Layer::calculate_dleta(){
 	}
 }
 
-void Convolutional_Layer::change_weight(float eta){
+void Convolutional_Layer::calculate_d_w(){
 	if(s==true){
 		for(int i=0;i<num;i++){
 			for(int j=0;j<a;j++){
@@ -572,13 +623,13 @@ void Convolutional_Layer::change_weight(float eta){
 								sum=sum+((Input_Layer*)last_layer)->y.d[l_1][l_2+j][l_3+k]*w.d[i][l_1][j][k]*dleta.d[i][j][k];
 							}
 						}
-						w.d[i][l_1][j][k] +=eta*(sum/((last_m-a)*(last_n-b)));
+						d_w.d[i][l_1][j][k] +=(sum/((last_m-a)*(last_n-b)));
 					}
 				}
 			}
 			for(int j=0;j<m;j++){
 				for(int k=0;k<n;k++){
-					bias.d[i][j][k]+=eta*dleta.d[i][j][k];
+					d_bias.d[i][j][k]+=dleta.d[i][j][k];
 				}
 			}
 		}
@@ -593,13 +644,50 @@ void Convolutional_Layer::change_weight(float eta){
 								sum=sum+((Max_Pooling_Layer*)last_layer)->y.d[l_1][l_2+j][l_3+k]*w.d[i][l_1][j][k]*dleta.d[i][j][k];
 							}
 						}
-						w.d[i][l_1][j][k] +=eta*(sum/((last_m-a)*(last_n-b)));
+						d_w.d[i][l_1][j][k] +=(sum/((last_m-a)*(last_n-b)));
 					}
 				}
 			}
 			for(int j=0;j<m;j++){
 				for(int k=0;k<n;k++){
-					bias.d[i][j][k]+=eta*dleta.d[i][j][k];
+					d_bias.d[i][j][k]+=dleta.d[i][j][k];
+				}
+			}
+		}
+	}
+}
+void Convolutional_Layer::change_weight(float eta){
+	if(s==true){
+		for(int i=0;i<num;i++){
+			for(int j=0;j<a;j++){
+				for(int k=0;k<b;k++){
+					for (int l_1=0;l_1<last_num;l_1++){
+						w.d[i][l_1][j][k] +=eta*d_w.d[i][l_1][j][k];
+						d_w.d[i][l_1][j][k]=0;
+					}
+				}
+			}
+			for(int j=0;j<m;j++){
+				for(int k=0;k<n;k++){
+					bias.d[i][j][k]+=eta*d_bias.d[i][j][k];
+					d_bias.d[i][j][k]=0;
+				}
+			}
+		}
+	}else{
+		for(int i=0;i<num;i++){
+			for(int j=0;j<a;j++){
+				for(int k=0;k<b;k++){
+					for (int l_1=0;l_1<last_num;l_1++){
+						w.d[i][l_1][j][k] +=eta*d_w.d[i][l_1][j][k];
+						d_w.d[i][l_1][j][k]=0;
+					}
+				}
+			}
+			for(int j=0;j<m;j++){
+				for(int k=0;k<n;k++){
+					bias.d[i][j][k]+=eta*d_bias.d[i][j][k];
+					d_bias.d[i][j][k]=0;
 				}
 			}
 		}
@@ -771,6 +859,46 @@ public:
 		std::cout<<"C_1"<<std::endl;
 	#endif
 		C_1.calculate_dleta();
+	#ifdef	_DEBUG_T_
+		std::cout<<"=========================================="<<std::endl;
+	#endif
+
+	#ifdef	_DEBUG_T_
+		std::cout<<"FC_9"<<std::endl;
+	#endif
+		FC_9.calculate_d_w();
+	#ifdef	_DEBUG_T_
+		std::cout<<"FC_8"<<std::endl;
+	#endif
+		FC_8.calculate_d_w();
+	#ifdef	_DEBUG_T_
+		std::cout<<"FC_7"<<std::endl;
+	#endif
+		FC_7.calculate_d_w();
+	#ifdef	_DEBUG_T_
+		std::cout<<"MP_6"<<std::endl;
+	#endif
+//		MP_6.calculate_d_w();
+	#ifdef	_DEBUG_T_
+		std::cout<<"C_5"<<std::endl;
+	#endif
+//		C_5.calculate_d_w();
+	#ifdef	_DEBUG_T_
+		std::cout<<"MP_4"<<std::endl;
+	#endif
+		MP_4.calculate_d_w();
+	#ifdef	_DEBUG_T_
+		std::cout<<"C_3"<<std::endl;
+	#endif
+		C_3.calculate_d_w();
+	#ifdef	_DEBUG_T_
+		std::cout<<"MP_2"<<std::endl;
+	#endif
+		MP_2.calculate_d_w();
+	#ifdef	_DEBUG_T_
+		std::cout<<"C_1"<<std::endl;
+	#endif
+		C_1.calculate_d_w();
 	#ifdef	_DEBUG_T_
 		std::cout<<"=========================================="<<std::endl;
 	#endif
