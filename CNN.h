@@ -16,9 +16,9 @@ class Fully_Connected_Layer;
 
 float R(){
 	if ((rand()%2)==0){
-		return -1;
+		return -0.5;
 	}else{
-		return 1;
+		return 0.5;
 	}
 }
 
@@ -44,8 +44,12 @@ namespace sigmoid{
 class tube{
 public:
 	float ****d;
-
+	int a_1,a_2,a_3,a_4;
 	void init(int x,int y,int z,int a){
+		a_1=x;
+		a_2=y;
+		a_3=z;
+		a_4=a;
 		d=new float***[x];
 		for (int i=0;i<x;i++){
 			d[i]=new float**[y];
@@ -53,12 +57,19 @@ public:
 				d[i][j]=new float*[z];
 				for(int k=0;k<z;k++){
 					d[i][j][k]=new float[a];
+					for(int l=0;l<a;l++){
+						d[i][j][k][l]=0;
+					}
 				}
 			}
 		}
 	}
 
 	void init(int x,int y,int z,int a,void *r_init){
+		a_1=x;
+		a_2=y;
+		a_3=z;
+		a_4=a;
 		d=new float***[x];
 		for (int i=0;i<x;i++){
 			d[i]=new float**[y];
@@ -73,24 +84,82 @@ public:
 			}
 		}
 	}
+	
+	void add(tube *source){
+		for (int i=0;i<a_1;i++){
+			for (int j=0;j<a_2;j++){
+				for(int k=0;k<a_3;k++){
+					for(int l=0;l<a_4;l++){
+						d[i][j][k][l]+=source->d[i][j][k][l];
+					}
+				}
+			}
+		}
+	}
+	
+	void add(tube *source,float eta){
+		for (int i=0;i<a_1;i++){
+			for (int j=0;j<a_2;j++){
+				for(int k=0;k<a_3;k++){
+					for(int l=0;l<a_4;l++){
+						d[i][j][k][l]+=eta*source->d[i][j][k][l];
+					}
+				}
+			}
+		}
+	}
+	
+	void copy(tube *source){
+		for (int i=0;i<a_1;i++){
+			for (int j=0;j<a_2;j++){
+				for(int k=0;k<a_3;k++){
+					for(int l=0;l<a_4;l++){
+						d[i][j][k][l]=source->d[i][j][k][l];
+					}
+				}
+			}
+		}
+	}
+	
+	void reset(){
+		for (int i=0;i<a_1;i++){
+			for (int j=0;j<a_2;j++){
+				for(int k=0;k<a_3;k++){
+					for(int l=0;l<a_4;l++){
+						d[i][j][k][l]=0;
+					}
+				}
+			}
+		}
+	}
 };
 
 //3 aixs
 class cube{
 public:
 	float ***d;
+	int a_1,a_2,a_3;
 
 	void init(int x,int y,int z){
+		a_1=x;
+		a_2=y;
+		a_3=z;
 		d=new float**[x];
 		for (int i=0;i<x;i++){
 			d[i]=new float*[y];
 			for (int j=0;j<y;j++){
 				d[i][j]=new float[z];
+				for(int k=0;k<z;k++){
+					d[i][j][k]=0;
+				}
 			}
 		}
 	}
 
 	void init(int x,int y,int z,void *r_init){
+		a_1=x;
+		a_2=y;
+		a_3=z;
 		d=new float**[x];
 		for (int i=0;i<x;i++){
 			d[i]=new float*[y];
@@ -102,21 +171,69 @@ public:
 			}
 		}
 	}
+	
+	void add(cube *source){
+		for (int i=0;i<a_1;i++){
+			for (int j=0;j<a_2;j++){
+				for(int k=0;k<a_3;k++){
+					d[i][j][k]+=source->d[i][j][k];
+				}
+			}
+		}
+	}
+	
+	void add(cube *source,float eta){
+		for (int i=0;i<a_1;i++){
+			for (int j=0;j<a_2;j++){
+				for(int k=0;k<a_3;k++){
+					d[i][j][k]+=eta*source->d[i][j][k];
+				}
+			}
+		}
+	}
+	
+	void copy(cube *source){
+		for (int i=0;i<a_1;i++){
+			for (int j=0;j<a_2;j++){
+				for(int k=0;k<a_3;k++){
+					d[i][j][k]=source->d[i][j][k];
+				}
+			}
+		}
+	}
+	
+	void reset(){
+		for (int i=0;i<a_1;i++){
+			for (int j=0;j<a_2;j++){
+				for(int k=0;k<a_3;k++){
+					d[i][j][k]=0;
+				}
+			}
+		}
+	}
 };
 
 //2 aixs
 class mat{
 public:
 	float **d;
+	int a_1,a_2;
 
 	void init(int x,int y){
+		a_1=x;
+		a_2=y;
 		d=new float*[x];
 		for (int i=0;i<x;i++){
 			d[i]=new float[y];
+			for (int j=0;j<y;j++){
+				d[i][j]=0;
+			}
 		}
 	}
 
 	void init(int x,int y,void *r_init){
+		a_1=x;
+		a_2=y;
 		d=new float*[x];
 		for (int i=0;i<x;i++){
 			d[i]=new float[y];
@@ -125,20 +242,82 @@ public:
 			}
 		}
 	}
+	
+	void add(mat *source){
+		for (int i=0;i<a_1;i++){
+			for (int j=0;j<a_2;j++){
+					d[i][j]+=source->d[i][j];
+			}
+		}
+	}
+	
+	void add(mat *source,float eta){
+		for (int i=0;i<a_1;i++){
+			for (int j=0;j<a_2;j++){
+					d[i][j]+=eta*source->d[i][j];
+			}
+		}
+	}
+	
+	void copy(mat *source){
+		for (int i=0;i<a_1;i++){
+			for (int j=0;j<a_2;j++){
+					d[i][j]=source->d[i][j];
+			}
+		}
+	}
+	
+	void reset(){
+		for (int i=0;i<a_1;i++){
+			for (int j=0;j<a_2;j++){
+					d[i][j]=0;
+			}
+		}
+	}
 };
 
 class array{
 public:
 	float *d;
+	int a_1;
 
 	void init(int num){
+		a_1=num;
 		d=new float[num];
+		for (int i=0;i<num;i++){
+			d[i]=0;
+		}
 	}
 	
 	void init(int num,void *r_init){
+		a_1=num;
 		d=new float[num];
 		for (int i=0;i<num;i++){
 			d[i]=R();
+		}
+	}
+	
+	void add(array *source){
+		for (int i=0;i<a_1;i++){
+				d[i]+=source->d[i];
+		}
+	}
+	
+	void add(array *source,float eta){
+		for (int i=0;i<a_1;i++){
+				d[i]+=eta*source->d[i];
+		}
+	}
+	
+	void copy(array *source){
+		for (int i=0;i<a_1;i++){
+				d[i]=source->d[i];
+		}
+	}
+	
+	void reset(){
+		for (int i=0;i<a_1;i++){
+				d[i]=0;
 		}
 	}
 };
@@ -462,7 +641,7 @@ void Convolutional_Layer::init_1(void *last,int num_pics,int a_core,int b_core,b
 	m=last_m-a+1;
 	n=last_n-a+1;
 	w.init(num,last_num,a,b,NULL);
-	bias.init(num,m,n,NULL);
+	bias.init(num,m,n);
 	d_w.init(num,last_num,a,b);
 	d_bias.init(num,m,n);
 	y.init(num,m,n);
@@ -512,7 +691,7 @@ void Max_Pooling_Layer::init_1(Convolutional_Layer *last,int a_core,int b_core){
 	n=last->n/b;
 	last_layer=last;
 	beta.init(num,m,n,NULL);
-	bias.init(num,m,n,NULL);
+	bias.init(num,m,n);
 	d_beta.init(num,m,n);
 	d_bias.init(num,m,n);
 	y.init(num,m,n);
