@@ -2,6 +2,8 @@
 ### By Huang Tao
 
 ***
+##OpenMP supported
+Use ./topm.cpp
 
 ##Layers
 * Convolutional layer

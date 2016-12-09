@@ -4,21 +4,28 @@
 //#define _DEBUG_Y_
 //#define _DEBUG_T_
 
+/*
+omp_get_thread_num()
+omp_get_num_threads()
+
+*/
+
 #include <iostream>
 #include <stdio.h>
 #include <assert.h>
 #include <time.h>
 #include "CNN.h"
 #include "MINST/MINST.h"
+#include <omp.h>
 
 float right=0;
 
-Convolutional_Neural_Network CNN;
+Convolutional_Neural_Network *CNN;
 
-void input_minst(MinstImg input){
+void input_minst(MinstImg input,int index){
 	for (int i=0;i<28;i++){
 		for (int j=0;j<28;j++){
-			CNN.INPUT.y.d[0][i][j]=input.ImgData[i][j];
+			CNN[index].INPUT.y.d[0][i][j]=input.ImgData[i][j];
 		}
 	}
 }
@@ -36,7 +43,11 @@ int sort(float *data){
 }
 
 int main(){
-	int timestart;
+	int time_s;
+	int t_num=4;
+	int id=0;
+	omp_set_num_threads(t_num);
+	std::cout<<t_num<<'\n';
 	printf("===========\nMINST_READ\n===========\n");
 	printf("--\nReading training images.\n");
 	ImgArr train_img = read_Img("./MINST/train-images.idx3-ubyte");
@@ -65,8 +76,11 @@ int main(){
 	printf("===========\nCNN_INIT\n===========\n");
 
 	srand(time(NULL));
-
-	CNN.init();
+	
+	CNN=new Convolutional_Neural_Network[t_num];
+	for (int i=0;i<t_num;i++){
+		CNN[i].init();
+	}
 
 #ifdef	_DEBUG_MINST_
 	printf("===========\nMINST_SHOW\n===========\n");
@@ -84,64 +98,60 @@ int main(){
 #endif
 
 	std::cout<<std::endl;
-	for(int j=0;j<1000;j++){
-	int time_s=time(NULL);
-	for (int i=0;i<60000;i++){
-		float error=0;
-		input_minst(train_img->ImgPtr[i]);
-		CNN.train(train_label->LabelPtr[i].LabelData);
-		CNN.change_weight(0.0005); 
-		if ((i%5000)==0){
-			std::cerr<<i<<'|'<<sort(train_label->LabelPtr[i].LabelData)<<'|'<<(time(NULL)-time_s)<<std::endl;
-			for(int l=0;l<500;l++){
-//			float erro=0;
-			input_minst(test_img->ImgPtr[l]);
-			CNN.calculate();
-//			for(int j=0;j<10;j++)
-//			{
-//				erro+=(test_label->LabelPtr[0].LabelData[j]-CNN.FC_9.y[j])*(test_label->LabelPtr[0].LabelData[j]-CNN.FC_9.y[j]);
-//			}
-			if(sort(test_label->LabelPtr[l].LabelData)==sort(CNN.FC_9.y)){
-				right=right+1;
-			}
-//			std::cout<<erro<<'|'<<sort(test_label->LabelPtr[0].LabelData)<<'|'<<sort(CNN.FC_9.y)<<'|'<<sort(train_label->LabelPtr[i].LabelData)<<std::endl;
-			}
-			std::cout<<right/500<<std::endl;
-			right=0;
-			time_s=time(NULL);
-		}
-	}
-
-//	for (int i=0;i<3;i++){
-//		input_minst(test_img->ImgPtr[i]);
-//		CNN.calculate();
-//		for(int j=0;j<CNN.C_1.m;j++){
-//			for(int k=0;k<CNN.C_1.n;k++){
-//				std::cout<<CNN.C_1.y.d[0][j][k]<<'|';
-//			}
-//			std::cout<<std::endl;
-//		}
-//		std::cout<<"==================="<<std::endl;
-//		for(int j=0;j<CNN.MP_2.m;j++)
+	time_s=time(NULL);
+	for(int j=0;j<1000000;j++){
+		#pragma omp parallel private(id)
 		{
-//			for(int k=0;k<CNN.MP_2.n;k++){
-//				printf("%f,",CNN.MP_2.y.d[0][j][k]);
-//			}
-
+			id=omp_get_thread_num();
+			//std::cerr<<id<<std::endl;
+     		#pragma omp for 
+			for (int i=0;i<60;i++){
+				input_minst(train_img->ImgPtr[i+((j%1000)*60)],id);
+				CNN[id].train(train_label->LabelPtr[i+((j%1000)*60)].LabelData);
+			}
+			#pragma omp barrier
+			//std::cerr<<"barrier"<<std::endl;
+			#pragma omp master
+			{
+				//std::cerr<<"master"<<std::endl;
+				for(int i=0;i<t_num;i++)
+				{
+					//std::cerr<<CNN[i].C_1.d_w.d[0][0][0][0]<<std::endl;
+					CNN[0].change_weight(&(CNN[i]),0.0001);
+				}
+			}
+			#pragma omp barrier
+			//std::cerr<<id<<std::endl;
+			if(id==0){
+				//std::cerr<<"id==0"<<std::endl;
+				goto end_copy;
+			}
+			//std::cerr<<"copy"<<std::endl;
+			CNN[id].copy_weight(&(CNN[0]));
+		end_copy:
+			if ((j%1000)==0)
+			{
+     			#pragma omp for 
+			for(int l=0;l<10000;l++){
+				input_minst(test_img->ImgPtr[l],id);
+				CNN[id].calculate();
+				if(sort(test_label->LabelPtr[l].LabelData)==sort(CNN[id].FC_9.y)){
+					right=right+1;
+					//std::cerr<<sort(CNN[id].FC_9.y)<<'|';
+				}
+			}
+			#pragma omp barrier
+			#pragma omp master
+			{
+				std::cerr<<j<<'|'<<(time(NULL)-time_s)<<std::endl;
+				std::cout<<right/10000<<std::endl;
+				right=0;
+				time_s=time(NULL);
+			}
+			}
+			#pragma omp barrier
+			//std::cerr<<"barrier"<<std::endl;
 		}
-//		std::cout<<"==================="<<std::endl;
-//		for(int j=0;j<10;j++)
-		{
-//			printf("%f,",CNN.FC_9.y[j]);
-		}
-//		std::cout<<"==================="<<std::endl;
-//		std::cout<<'\n';
-//		if (sort(test_label->LabelPtr[i].LabelData)==sort(CNN.FC_8.y)){
-//			printf("good\n");
-//			right+=1;
-//		}
-//	}
-//	printf("%f\n",right);
 	}
 	std::cout<<std::endl<<"OK!"<<std::endl;
 

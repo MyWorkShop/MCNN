@@ -16,9 +16,9 @@ class Fully_Connected_Layer;
 
 float R(){
 	if ((rand()%2)==0){
-		return -0.5;
+		return -1;
 	}else{
-		return 0.5;
+		return 1;
 	}
 }
 
@@ -122,6 +122,7 @@ public:
 	}
 	
 	void reset(){
+		
 		for (int i=0;i<a_1;i++){
 			for (int j=0;j<a_2;j++){
 				for(int k=0;k<a_3;k++){
@@ -203,6 +204,7 @@ public:
 	}
 	
 	void reset(){
+		
 		for (int i=0;i<a_1;i++){
 			for (int j=0;j<a_2;j++){
 				for(int k=0;k<a_3;k++){
@@ -268,6 +270,7 @@ public:
 	}
 	
 	void reset(){
+		
 		for (int i=0;i<a_1;i++){
 			for (int j=0;j<a_2;j++){
 					d[i][j]=0;
@@ -316,6 +319,7 @@ public:
 	}
 	
 	void reset(){
+		
 		for (int i=0;i<a_1;i++){
 				d[i]=0;
 		}
@@ -380,6 +384,8 @@ public:
 	void calculate_d_w();
 
 	void change_weight(float eta);
+	void change_weight(Convolutional_Layer *source,float eta);
+	void copy_weight(Convolutional_Layer *source);
 };
 
 class Max_Pooling_Layer{
@@ -454,16 +460,22 @@ public:
 	}
 
 	void change_weight(float eta){
-		for (int i=0;i<num;i++){
-			for (int j=0;j<m;j++){
-				for (int k=0;k<n;k++){
-					beta.d[i][j][k]+=eta*d_beta.d[i][j][k];
-					bias.d[i][j][k]+=eta*d_bias.d[i][j][k];
-					d_beta.d[i][j][k]=0;
-					d_bias.d[i][j][k]=0;
-				}
-			}
-		}
+		beta.add(&d_beta,eta);
+		bias.add(&d_bias,eta);
+		d_beta.reset();
+		d_bias.reset();
+	}
+
+	void change_weight(Max_Pooling_Layer *source,float eta){
+		beta.add(&(source->d_beta),eta);
+		bias.add(&(source->d_bias),eta);
+		source->d_beta.reset();
+		source->d_bias.reset();
+	}
+
+	void copy_weight(Max_Pooling_Layer *source){
+		beta.copy(&(source->beta));
+		bias.copy(&(source->bias));
 	}
 };
 
@@ -595,29 +607,41 @@ public:
 
 	void change_weight(float eta){
 		if(max_pooling==false){
-			for (int i=0;i<num;i++){
-				for (int j=0;j<last_num;j++) {
-					((mat*)w)->d[j][i]+=eta*((mat*)d_w)->d[j][i];
-					((mat*)d_w)->d[j][i]=0;
-				}
-				bias.d[i]+=eta*d_bias.d[i];
-				d_bias.d[i]=0;
-			}
+			((mat*)w)->add(((mat*)d_w),eta);
+			bias.add(&d_bias,eta);
+			((mat*)d_w)->reset();
+			d_bias.reset();
 		}else{
-			for (int i=0;i<num;i++){
-				for (int j=0;j<last_num;j++){
-					for(int k=0;k<last_m;k++){
-						for(int l=0;l<last_n;l++){
-							((tube*)w)->d[j][k][l][i]+=eta*((tube*)d_w)->d[j][k][l][i];
-							((tube*)d_w)->d[j][k][l][i]=0;
-						}
-					}
-				}
-				bias.d[i]+=eta*d_bias.d[i];
-				d_bias.d[i]=0;
-			}
+			((tube*)w)->add(((tube*)d_w),eta);
+			bias.add(&d_bias,eta);
+			((tube*)d_w)->reset();
+			d_bias.reset();
 		}
 	
+	}
+
+	void change_weight(Fully_Connected_Layer *source,float eta){
+		if(max_pooling==false){
+			((mat*)w)->add(((mat*)source->d_w),eta);
+			bias.add(&(source->d_bias),eta);
+			((mat*)source->d_w)->reset();
+			source->d_bias.reset();
+		}else{
+			((tube*)w)->add(((tube*)source->d_w),eta);
+			bias.add(&(source->d_bias),eta);
+			((tube*)source->d_w)->reset();
+			source->d_bias.reset();
+		}
+	}
+
+	void copy_weight(Fully_Connected_Layer *source){
+		if(max_pooling==false){
+			((mat*)w)->copy(((mat*)source->w));
+			bias.copy(&(source->bias));
+		}else{
+			((tube*)w)->copy(((tube*)source->w));
+			bias.copy(&(source->bias));
+		}
 	}
 };
 
@@ -835,44 +859,25 @@ void Convolutional_Layer::calculate_d_w(){
 		}
 	}
 }
+
 void Convolutional_Layer::change_weight(float eta){
-	if(s==true){
-		for(int i=0;i<num;i++){
-			for(int j=0;j<a;j++){
-				for(int k=0;k<b;k++){
-					for (int l_1=0;l_1<last_num;l_1++){
-						w.d[i][l_1][j][k] +=eta*d_w.d[i][l_1][j][k];
-						d_w.d[i][l_1][j][k]=0;
-					}
-				}
-			}
-			for(int j=0;j<m;j++){
-				for(int k=0;k<n;k++){
-					bias.d[i][j][k]+=eta*d_bias.d[i][j][k];
-					d_bias.d[i][j][k]=0;
-				}
-			}
-		}
-	}else{
-		for(int i=0;i<num;i++){
-			for(int j=0;j<a;j++){
-				for(int k=0;k<b;k++){
-					for (int l_1=0;l_1<last_num;l_1++){
-						w.d[i][l_1][j][k] +=eta*d_w.d[i][l_1][j][k];
-						d_w.d[i][l_1][j][k]=0;
-					}
-				}
-			}
-			for(int j=0;j<m;j++){
-				for(int k=0;k<n;k++){
-					bias.d[i][j][k]+=eta*d_bias.d[i][j][k];
-					d_bias.d[i][j][k]=0;
-				}
-			}
-		}
-	}
+	w.add(&d_w,eta);
+	bias.add(&d_bias,eta);
+	d_w.reset();
+	d_bias.reset();
 }
 
+void Convolutional_Layer::change_weight(Convolutional_Layer *source,float eta){
+	w.add(&(source->d_w),eta);
+	bias.add(&(source->d_bias),eta);
+	(source->d_w).reset();
+	(source->d_bias).reset();
+}
+
+void Convolutional_Layer::copy_weight(Convolutional_Layer *source){
+	w.copy(&(source->w));
+	bias.copy(&(source->bias));
+}
 
 class Convolutional_Neural_Network{
 public:
@@ -1000,7 +1005,7 @@ public:
 	#endif
 	}
 
-	void train(float *y,float eta_c,float eta_mp,float eta_fc){
+	void train(float *y){
 		calculate();
 	#ifdef	_DEBUG_T_
 		std::cout<<"FC_9"<<std::endl;
@@ -1081,18 +1086,22 @@ public:
 	#ifdef	_DEBUG_T_
 		std::cout<<"=========================================="<<std::endl;
 	#endif
+	}
+	
+	void change_weight(float eta)
+	{
 	#ifdef	_DEBUG_T_
 		std::cout<<"FC_9"<<std::endl;
 	#endif
-		FC_9.change_weight(eta_fc);
+		FC_9.change_weight(eta);
 	#ifdef	_DEBUG_T_
 		std::cout<<"FC_8"<<std::endl;
 	#endif
-		FC_8.change_weight(eta_fc);
+		FC_8.change_weight(eta);
 	#ifdef	_DEBUG_T_
 		std::cout<<"FC_7"<<std::endl;
 	#endif
-		FC_7.change_weight(eta_fc);
+		FC_7.change_weight(eta);
 	#ifdef	_DEBUG_T_
 		std::cout<<"MP_6"<<std::endl;
 	#endif
@@ -1104,18 +1113,98 @@ public:
 	#ifdef	_DEBUG_T_
 		std::cout<<"MP_4"<<std::endl;
 	#endif
-		MP_4.change_weight(eta_mp);
+		MP_4.change_weight(eta);
 	#ifdef	_DEBUG_T_
 		std::cout<<"C_3"<<std::endl;
 	#endif
-		C_3.change_weight(eta_c);
+		C_3.change_weight(eta);
 	#ifdef	_DEBUG_T_
 		std::cout<<"MP_2"<<std::endl;
 	#endif
-		MP_2.change_weight(eta_mp);
+		MP_2.change_weight(eta);
 	#ifdef	_DEBUG_T_
 		std::cout<<"C_1"<<std::endl;
 	#endif
-		C_1.change_weight(eta_c);
+		C_1.change_weight(eta);
+	}
+	
+	void change_weight(Convolutional_Neural_Network *source,float eta)
+	{
+	#ifdef	_DEBUG_T_
+		std::cout<<"FC_9"<<std::endl;
+	#endif
+		FC_9.change_weight(&(source->FC_9),eta);
+	#ifdef	_DEBUG_T_
+		std::cout<<"FC_8"<<std::endl;
+	#endif
+		FC_8.change_weight(&(source->FC_8),eta);
+	#ifdef	_DEBUG_T_
+		std::cout<<"FC_7"<<std::endl;
+	#endif
+		FC_7.change_weight(&(source->FC_7),eta);
+	#ifdef	_DEBUG_T_
+		std::cout<<"MP_6"<<std::endl;
+	#endif
+//		MP_6.change_weight(&(source->MP_6),eta);
+	#ifdef	_DEBUG_T_
+		std::cout<<"C_5"<<std::endl;
+	#endif
+//		C_5.change_weight(&(source->C_5),eta);
+	#ifdef	_DEBUG_T_
+		std::cout<<"MP_4"<<std::endl;
+	#endif
+		MP_4.change_weight(&(source->MP_4),eta);
+	#ifdef	_DEBUG_T_
+		std::cout<<"C_3"<<std::endl;
+	#endif
+		C_3.change_weight(&(source->C_3),eta);
+	#ifdef	_DEBUG_T_
+		std::cout<<"MP_2"<<std::endl;
+	#endif
+		MP_2.change_weight(&(source->MP_2),eta);
+	#ifdef	_DEBUG_T_
+		std::cout<<"C_1"<<std::endl;
+	#endif
+		C_1.change_weight(&(source->C_1),eta);
+	}
+	
+	void copy_weight(Convolutional_Neural_Network *source)
+	{
+	#ifdef	_DEBUG_T_
+		std::cout<<"FC_9"<<std::endl;
+	#endif
+		FC_9.copy_weight(&(source->FC_9));
+	#ifdef	_DEBUG_T_
+		std::cout<<"FC_8"<<std::endl;
+	#endif
+		FC_8.copy_weight(&(source->FC_8));
+	#ifdef	_DEBUG_T_
+		std::cout<<"FC_7"<<std::endl;
+	#endif
+		FC_7.copy_weight(&(source->FC_7));
+	#ifdef	_DEBUG_T_
+		std::cout<<"MP_6"<<std::endl;
+	#endif
+//		MP_6.copy_weight(&(source->MP_6));
+	#ifdef	_DEBUG_T_
+		std::cout<<"C_5"<<std::endl;
+	#endif
+//		C_5.copy_weight(&(source->C_5));
+	#ifdef	_DEBUG_T_
+		std::cout<<"MP_4"<<std::endl;
+	#endif
+		MP_4.copy_weight(&(source->MP_4));
+	#ifdef	_DEBUG_T_
+		std::cout<<"C_3"<<std::endl;
+	#endif
+		C_3.copy_weight(&(source->C_3));
+	#ifdef	_DEBUG_T_
+		std::cout<<"MP_2"<<std::endl;
+	#endif
+		MP_2.copy_weight(&(source->MP_2));
+	#ifdef	_DEBUG_T_
+		std::cout<<"C_1"<<std::endl;
+	#endif
+		C_1.copy_weight(&(source->C_1));
 	}
 };
