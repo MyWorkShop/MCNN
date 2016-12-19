@@ -20,6 +20,8 @@ omp_get_num_threads()
 
 float right=0;
 
+FILE *output; 
+
 Convolutional_Neural_Network *CNN;
 
 void input_minst(MinstImg input,int index){
@@ -44,10 +46,11 @@ int sort(float *data){
 
 int main(){
 	int time_s;
-	int t_num=4;
+	int t_num=12;
 	int id=0;
 	omp_set_num_threads(t_num);
-	std::cout<<t_num<<'\n';
+	output=fopen("output.csv","a");
+	std::cout<<"The threads will be use:"<<t_num<<'\n';
 	printf("===========\nMINST_READ\n===========\n");
 	printf("--\nReading training images.\n");
 	ImgArr train_img = read_Img("./MINST/train-images.idx3-ubyte");
@@ -108,6 +111,7 @@ int main(){
 			for (int i=0;i<60;i++){
 				input_minst(train_img->ImgPtr[i+((j%1000)*60)],id);
 				CNN[id].train(train_label->LabelPtr[i+((j%1000)*60)].LabelData);
+//				std::cerr<<"train"<<std::endl;
 			}
 			#pragma omp barrier
 			//std::cerr<<"barrier"<<std::endl;
@@ -117,7 +121,7 @@ int main(){
 				for(int i=0;i<t_num;i++)
 				{
 					//std::cerr<<CNN[i].C_1.d_w.d[0][0][0][0]<<std::endl;
-					CNN[0].change_weight(&(CNN[i]),0.0001);
+					CNN[0].change_weight(&(CNN[i]),0.00075);
 				}
 			}
 			#pragma omp barrier
@@ -145,6 +149,7 @@ int main(){
 			{
 				std::cerr<<j<<'|'<<(time(NULL)-time_s)<<std::endl;
 				std::cout<<right/10000<<std::endl;
+				fprintf(output,"%d,%f\n",j/1000,right/10000);
 				right=0;
 				time_s=time(NULL);
 			}
