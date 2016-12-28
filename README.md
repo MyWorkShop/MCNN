@@ -14,10 +14,7 @@ Use ./topm.cpp
 
 ##Test 
     MINST Database
-    90% correct rate 
-
-![rate](https://bbs.kechuang.org/r/271583)
-
+    95.96% correct rate 
 ***
 
 ##Usages
