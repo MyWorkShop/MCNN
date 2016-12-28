@@ -1,8 +1,6 @@
 #include <stdlib.h>
 #include <math.h>
 
-//ç»«å©šî•©ç€¹æ°«ç®Ÿ
-
 class tube;
 class cube;
 class mat;
@@ -12,7 +10,7 @@ class Convolutional_Layer;
 class Max_Pooling_Layer;
 class Fully_Connected_Layer;
 
-//é—…å¿”æº€é‘èŠ¥æšŸ
+//random
 
 float R(){
 	if ((rand()%2)==0){
@@ -26,19 +24,39 @@ float r(){
 	return rand()/(RAND_MAX+1.0);
 }
 
-// æˆæ’³åš­é‘èŠ¥æšŸ
+//Activation Function
 
 namespace sigmoid{
 	float y(float x){
 		return 1/(1+exp(-x));
 	}
-
+	
 	float df(float y){
 		return y*(1-y);
 	}
 }
 
-//éç‰ˆåµç€›æ¨ºåç»«?
+namespace relu{
+	float y(float x){
+		if (x>0)
+		{
+			return x;
+		}else{
+			return 0;
+		}
+	}
+
+	float df(float y){
+		if (y>0)
+		{
+			return 1;
+		}else{
+			return 0.01;
+		}
+	}
+}
+
+//Data class
 
 //4 aixs
 class tube{
@@ -326,7 +344,7 @@ public:
 	}
 };
 
-//çžå‚œè¢«
+//layer class
 
 class Input_Layer{
 public:
@@ -355,15 +373,15 @@ public:
 	int num;
 	void *last_layer;
 	int last_m,last_n;
-	int last_num,last_use;
+	int last_num;
 	Max_Pooling_Layer *next_layer;
 	int next_num;
 	int next_a,next_b;
 	bool s;
 
-	float core(int x_aixs,int y_aixs,int num_source,int num_output,int index);
+	float core(int x_aixs,int y_aixs,int num_source,int num_output);
 
-	void init_1(void *last,int num_pics,int a_core,int b_core,bool start,int use);
+	void init_1(void *last,int num_pics,int a_core,int b_core,bool start);
 	void init_2(Max_Pooling_Layer *next);
 
 	void calculate_y(){
@@ -371,10 +389,10 @@ public:
 			for(int j=0;j<m;j++){
 				for(int k=0;k<n;k++){
 					float sum=0;
-					for(int l=0;l<last_use;l++){
-						sum=sum+core(j,k,(i+l)%last_num,i,l);
+					for(int l=0;l<last_num;l++){
+						sum=sum+core(j,k,l,i);
 					}
-					y.d[i][j][k]=sigmoid::y(sum+bias.d[i][j][k]);
+					y.d[i][j][k]=relu::y(sum+bias.d[i][j][k]);
 				}
 			}
 		}
@@ -400,7 +418,6 @@ public:
 	int next_m,next_n;
 	int next_a,next_b;
 	int next_num;
-	int next_use;
 	bool Fully_Connected;
 	cube y;
 	cube d;
@@ -492,9 +509,10 @@ public:
 	int num;
 	float *y;
 	void *last_layer;
-	Fully_Connected_Layer *next_layer;
+	void *next_layer;
 	bool max_pooling;
 	bool end;
+	bool out; 
 	array dleta;
 
 	void init_1(void *last,int n,bool mpl){
@@ -527,21 +545,7 @@ public:
 	#endif
 	}
 
-	void init_2(Fully_Connected_Layer *next){
-		if (next==NULL){
-			next_layer=NULL;
-			end=true;
-		}else{
-			next_layer=next;
-			next_num=next_layer->num;
-			end=false;
-		}
-	#ifdef _DEBUG_INIT_
-		std::cout<<"--\nFully_Connected_Layer Init Stage 2:"<<std::endl;
-		std::cout<<"end,next_num"<<std::endl;
-		std::cout<<end<<','<<next_num<<std::endl;
-	#endif
-	}
+	void init_2(void *next,bool o);
 
 	void calculate_y(){
 		if (max_pooling==true){
@@ -567,22 +571,7 @@ public:
 		}
 	}
 
-	void calculate_dleta(float *d){
-		if(end==true){
-			for (int i=0;i<num;i++){
-				dleta.d[i]=sigmoid::df(y[i])*(d[i]-y[i]);
-			}
-		}else{
-//			std::cout<<"max"<<std::endl;
-			for (int i=0;i<num;i++){
-				float sum=0;
-				for (int j=0;j<next_num;j++) {
-					sum=sum+((mat*)((Fully_Connected_Layer*)next_layer)->w)->d[i][j]*((Fully_Connected_Layer*)next_layer)->dleta.d[j];
-				}
-				dleta.d[i]=sum*sigmoid::df(y[i]);
-			}
-		}
-	}
+	void calculate_dleta(float *d);
 	
 	void calculate_d_w(){
 		if(max_pooling==false){
@@ -646,15 +635,181 @@ public:
 	}
 };
 
-//çžå‚œè¢«é©ç¨¿å§é‘èŠ¥æšŸ
+class Output_Layer{
+public:
+	//w
+	mat w;
+	mat d_w;
+	//bias
+	array bias;
+	array d_bias;
+	//c
+	mat c;
+	mat d_c;
+	//alpha
+	mat d_alpha;
+	//last
+	int last_m,last_n;
+	int last_num;
+	Fully_Connected_Layer *last_layer;
+	//this
+	int num;
+	float *y;
+	array dleta;
 
-void Convolutional_Layer::init_1(void *last,int num_pics,int a_core,int b_core,bool start,int use){
+	void init_1(void *last,int n){
+		num=n;
+		last_layer=(Fully_Connected_Layer*)last;
+		y=new float[num];
+		last_num=last_layer->num;
+		w.init(last_layer->num,n,NULL);
+		d_w.init(last_layer->num,n);
+		c.init(last_layer->num,n);
+		d_c.init(last_layer->num,n);
+		d_alpha.init(last_layer->num,n);
+		dleta.init(num);
+		bias.init(num);
+		d_bias.init(num);
+	#ifdef _DEBUG_INIT_
+		std::cout<<"--\nOutput_Layer Init:"<<std::endl;
+		std::cout<<"n,last_num"<<std::endl;
+		std::cout<<n<<','<<last_num<<','<<std::endl;
+	#endif
+	}
+
+	void calculate_y(){
+		float sum_c=0;
+		float sum=0;
+		for (int i=0;i<num;i++){
+			sum=0;
+			sum_c=0;
+			for(int j=0;j<last_num;j++){
+				sum_c+=exp(c.d[j][i]); 
+			} 
+			for(int j=0;j<last_num;j++){
+				sum=sum+(exp(c.d[j][i])/sum_c)*w.d[j][i]*last_layer->y[j];
+			}
+			y[i]=sigmoid::y(sum+bias.d[i]);
+		}
+	}
+
+	void calculate_dleta(float *d){
+		for (int i=0;i<num;i++){
+			dleta.d[i]=sigmoid::df(y[i])*(d[i]-y[i]);
+		}
+		for (int i=0;i<num;i++){
+			for(int j=0;j<last_num;j++){
+				d_alpha.d[j][i]=dleta.d[i]*w.d[j][i]*last_layer->y[j];
+			}
+		}
+	}
+	
+	void calculate_d_w(){
+		float sum_c=0;
+		float sum=0;
+		for (int i=0;i<num;i++){
+			for (int j=0;j<last_num;j++) {
+				d_w.d[j][i]+=dleta.d[i]*((Fully_Connected_Layer*)last_layer)->y[j];
+			}
+			d_bias.d[i]+=dleta.d[i];
+		}
+		for (int i=0;i<num;i++){
+			sum_c=0;
+			sum=0;
+			for(int j=0;j<last_num;j++){
+				sum_c+=exp(c.d[j][i]); 
+			}
+			for(int j=0;j<last_num;j++){
+				sum+=d_alpha.d[j][i]*(c.d[j][i]/sum_c);
+			}
+			for(int j=0;j<last_num;j++){
+				d_c.d[j][i]=(exp(c.d[j][i])/sum_c)*(d_alpha.d[j][i]-sum);
+			}
+		}
+	}
+
+	void change_weight(float eta){
+		w.add(&d_w,eta);
+		c.add(&d_w,eta);
+		bias.add(&d_bias,eta);
+		d_w.reset();
+		d_c.reset();
+		d_bias.reset();
+		d_alpha.reset();
+	}
+
+	void change_weight(Output_Layer *source,float eta){
+		w.add(&(source->d_w),eta);
+		c.add(&(source->d_c),eta);
+		bias.add(&(source->d_bias),eta);
+		source->d_w.reset();
+		source->d_c.reset();
+		source->d_bias.reset();
+		source->d_alpha.reset();
+	}
+
+	void copy_weight(Output_Layer *source){
+		w.copy(&(source->w));
+		c.copy(&(source->c));
+		bias.copy(&(source->bias));
+	}
+};
+
+//layer function
+void Fully_Connected_Layer::init_2(void *next,bool o){
+	if (next==NULL){
+		next_layer=NULL;
+		end=true;
+	}else{
+		next_layer=next;
+		end=false;
+		out=o;
+	} if(o==false){
+		next_num=((Fully_Connected_Layer*)next_layer)->num;
+	}else{
+		next_num=((Output_Layer*)next_layer)->num;
+	}
+#ifdef _DEBUG_INIT_
+	std::cout<<"--\nFully_Connected_Layer Init Stage 2:"<<std::endl;
+	std::cout<<"end,next_num,out"<<std::endl;
+	std::cout<<end<<','<<next_num<<','<<out<<std::endl;
+#endif
+}
+
+void Fully_Connected_Layer::calculate_dleta(float *d){
+//	std::cout<<"--\nFully_Connected_Layer calculate_dleta SSS"<<std::endl;
+	if(end==true){
+		for (int i=0;i<num;i++){
+			dleta.d[i]=sigmoid::df(y[i])*(d[i]-y[i]);
+		}
+	}else if (out==false){
+//		std::cout<<"--\nFully_Connected_Layer calculate_dleta OOO"<<std::endl;
+		for (int i=0;i<num;i++){
+			float sum=0;
+			for (int j=0;j<next_num;j++) {
+				sum=sum+((mat*)((Fully_Connected_Layer*)next_layer)->w)->d[i][j]*((Fully_Connected_Layer*)next_layer)->dleta.d[j];
+			}
+			dleta.d[i]=sum*sigmoid::df(y[i]);
+		}
+	}else{
+//		std::cout<<"--\nFully_Connected_Layer calculate_dleta NNN"<<std::endl;
+		for (int i=0;i<num;i++){
+			float sum=0;
+			for (int j=0;j<next_num;j++) {
+				sum=sum+(((Output_Layer*)next_layer)->w).d[i][j]*((Output_Layer*)next_layer)->dleta.d[j];
+			}
+			dleta.d[i]=sum*sigmoid::df(y[i]);
+		}
+	}
+//	std::cout<<"--\nFully_Connected_Layer calculate_dleta EEE"<<std::endl;
+}
+
+void Convolutional_Layer::init_1(void *last,int num_pics,int a_core,int b_core,bool start){
 	s=start;
 	num=num_pics;
 	a=a_core;
 	b=b_core;
 	last_layer=last;
-	last_use=use;
 	if(start==true){
 		last_num=((Input_Layer*)last_layer)->num;
 		last_n=((Input_Layer*)last_layer)->n;
@@ -666,9 +821,9 @@ void Convolutional_Layer::init_1(void *last,int num_pics,int a_core,int b_core,b
 	}
 	m=last_m-a+1;
 	n=last_n-a+1;
-	w.init(num,last_use,a,b,NULL);
+	w.init(num,last_num,a,b,NULL);
 	bias.init(num,m,n);
-	d_w.init(num,last_use,a,b);
+	d_w.init(num,last_num,a,b);
 	d_bias.init(num,m,n);
 	y.init(num,m,n);
 	dleta.init(num,m,n);
@@ -691,18 +846,18 @@ void Convolutional_Layer::init_2(Max_Pooling_Layer *next){
 	#endif
 }
 
-float Convolutional_Layer::core(int x_aixs,int y_aixs,int num_source,int num_output,int index){
+float Convolutional_Layer::core(int x_aixs,int y_aixs,int num_source,int num_output){
 		float sum=0;
 		if(s==true){
 			for(int i=0;i<a;i++){
 				for(int j=0;j<b;j++){
-					sum=sum+w.d[num_output][index][i][j]*((Input_Layer*)last_layer)->y.d[num_source][x_aixs+i][y_aixs+j];
+					sum=sum+w.d[num_output][num_source][i][j]*((Input_Layer*)last_layer)->y.d[num_source][x_aixs+i][y_aixs+j];
 				}
 			}
 		}else{
 			for(int i=0;i<a;i++){
 				for(int j=0;j<b;j++){
-					sum=sum+w.d[num_output][index][i][j]*((Max_Pooling_Layer*)last_layer)->y.d[num_source][x_aixs+i][y_aixs+j];
+					sum=sum+w.d[num_output][num_source][i][j]*((Max_Pooling_Layer*)last_layer)->y.d[num_source][x_aixs+i][y_aixs+j];
 				}
 			}
 		}
@@ -741,13 +896,13 @@ void Max_Pooling_Layer::init_2(void *next,bool fcl){
 		next_n=((Convolutional_Layer*)next_layer)->n;
 		next_a=((Convolutional_Layer*)next_layer)->a;
 		next_b=((Convolutional_Layer*)next_layer)->b;
-		next_use=((Convolutional_Layer*)next_layer)->last_use;
 	}
 	#ifdef _DEBUG_INIT_
 		std::cout<<"--\nMax_Pooling_Layer Init Stage 2:"<<std::endl;
 		std::cout<<"Fully_Connected"<<std::endl;
 		std::cout<<Fully_Connected<<std::endl;
 	#endif
+
 }
 
 void Max_Pooling_Layer::calculate_dleta(){
@@ -765,13 +920,6 @@ void Max_Pooling_Layer::calculate_dleta(){
 		}
 	}else{
 //		std::cout<<num<<','<<m<<','<<n<<','<<next_num<<','<<next_a<<','<<next_b<<std::endl;
-		int l_num=0;
-		int r_index=0;
-		if((next_num%num)>=next_use){
-			l_num=((next_num/num)+1)*next_use;
-		}else{
-			l_num=(next_num/num)*next_use+next_num%num;
-		}
 		for (int i=0;i<num;i++){
 			for (int j=0;j<m;j++){
 				for (int k=0;k<n;k++){
@@ -781,7 +929,6 @@ void Max_Pooling_Layer::calculate_dleta(){
 						x_s=0;
 						x_e=j+1;
 					}else if(j>(m-next_a)){
-
 						x_s=next_a-(m-j);
 						x_e=next_a;
 					}else{
@@ -799,20 +946,11 @@ void Max_Pooling_Layer::calculate_dleta(){
 						y_e=next_b;
 					}
 //					std::cout<<x_s<<'|'<<x_e<<'|'<<y_s<<'|'<<y_e<<std::endl;
-					for (int l_1=0;l_1<l_num;l_1++){
-						int index=0;
-						int temp=(next_use-l_1-1);
-						if(i<next_use){
-							index=((next_use-i-1+l_1)/(next_use))*(num)+(next_use-i-1+l_1)%(next_use)-next_use+i+1;
-							r_index=next_use-((l_1+next_use-i-1)%next_use)-1;
-						}else{
-							index=((l_1)/(next_use))*(num)+(l_1)%(next_use)-next_use+i+1;
-							r_index=next_use-((l_1)%next_use)-1;
-						}
+					for (int l_1=0;l_1<next_num;l_1++){
 						for (int l_2=x_s;l_2<x_e;l_2++){
 							for (int l_3=y_s;l_3<y_e;l_3++){
-//								std::cout<<"hhh"<<index<<','<<next_use<<','<<r_index<<','<<l_num<<','<<l_1<<','<<i<<std::endl;
-								sum=sum+((Convolutional_Layer*)next_layer)->dleta.d[index][j-l_2][k-l_3]*((Convolutional_Layer*)next_layer)->w.d[index][r_index][l_2][l_3];
+//								std::cout<<i<<','<<j<<','<<k<<','<<l_1<<','<<l_2<<','<<l_3<<std::endl;
+								sum=sum+((Convolutional_Layer*)next_layer)->dleta.d[l_1][j-l_2][k-l_3]*((Convolutional_Layer*)next_layer)->w.d[l_1][i][l_2][l_3];
 							}
 						}
 					}
@@ -827,7 +965,7 @@ void Convolutional_Layer::calculate_dleta(){
 	for (int i=0;i<num;i++){
 		for (int j=0;j<m;j++){
 			for (int k=0;k<n;k++){
-				dleta.d[i][j][k]=next_layer->beta.d[i][j/next_a][k/next_a]*sigmoid::df(y.d[i][j][k])*next_layer->dleta.d[i][j/next_a][k/next_a];
+				dleta.d[i][j][k]=next_layer->beta.d[i][j/next_a][k/next_a]*relu::df(y.d[i][j][k])*next_layer->dleta.d[i][j/next_a][k/next_a];
 			}
 		}
 	}
@@ -838,11 +976,11 @@ void Convolutional_Layer::calculate_d_w(){
 		for(int i=0;i<num;i++){
 			for(int j=0;j<a;j++){
 				for(int k=0;k<b;k++){
-					for (int l_1=0;l_1<last_use;l_1++){
+					for (int l_1=0;l_1<last_num;l_1++){
 						float sum=0;
 						for (int l_2=0;l_2<(last_m-a);l_2++){
 							for (int l_3=0;l_3<(last_n-b);l_3++){
-								sum=sum+((Input_Layer*)last_layer)->y.d[(i+l_1)%last_num][l_2+j][l_3+k]*w.d[i][l_1][j][k]*dleta.d[i][j][k];
+								sum=sum+((Input_Layer*)last_layer)->y.d[l_1][l_2+j][l_3+k]*w.d[i][l_1][j][k]*dleta.d[i][j][k];
 							}
 						}
 						d_w.d[i][l_1][j][k] +=(sum/((last_m-a)*(last_n-b)));
@@ -859,11 +997,11 @@ void Convolutional_Layer::calculate_d_w(){
 		for(int i=0;i<num;i++){
 			for(int j=0;j<a;j++){
 				for(int k=0;k<b;k++){
-					for (int l_1=0;l_1<last_use;l_1++){
+					for (int l_1=0;l_1<last_num;l_1++){
 						float sum=0;
 						for (int l_2=0;l_2<(last_m-a);l_2++){
 							for (int l_3=0;l_3<(last_n-b);l_3++){
-								sum=sum+((Max_Pooling_Layer*)last_layer)->y.d[(i+l_1)%last_num][l_2+j][l_3+k]*w.d[i][l_1][j][k]*dleta.d[i][j][k];
+								sum=sum+((Max_Pooling_Layer*)last_layer)->y.d[l_1][l_2+j][l_3+k]*w.d[i][l_1][j][k]*dleta.d[i][j][k];
 							}
 						}
 						d_w.d[i][l_1][j][k] +=(sum/((last_m-a)*(last_n-b)));
@@ -907,7 +1045,7 @@ public:
 	Max_Pooling_Layer MP_4;
 	Fully_Connected_Layer FC_7;
 	Fully_Connected_Layer FC_8;
-	Fully_Connected_Layer FC_9;
+	Output_Layer FC_9;
 
 //	void init(){
 //		INPUT.init(1,28,28);
@@ -932,21 +1070,20 @@ public:
 //	}
 
 	void init(){
-		INPUT.init(1,28,28);
-		C_1.init_1((void*)&INPUT,8,5,5,true,1);
+		INPUT.init(1,29,29);
+		C_1.init_1((void*)&INPUT,20,4,4,true);
 		MP_2.init_1(&C_1,2,2);
 		C_1.init_2(&MP_2);
-		C_3.init_1((void*)&MP_2,16,3,3,false,3);
+		C_3.init_1((void*)&MP_2,40,5,5,false);
 		MP_2.init_2(&C_3,false);
-		MP_4.init_1(&C_3,2,2);
+		MP_4.init_1(&C_3,3,3);
 		C_3.init_2(&MP_4);
-		FC_7.init_1(&MP_4,128,true);
+		FC_7.init_1(&MP_4,300,true);
 		MP_4.init_2(&FC_7,true);
-		FC_8.init_1(&FC_7,10,false);
-		FC_7.init_2(&FC_8);
-		FC_9.init_1(&FC_8,10,false);
-		FC_8.init_2(&FC_9);
-		FC_9.init_2(NULL);
+		FC_8.init_1(&FC_7,150,false);
+		FC_7.init_2(&FC_8,false);
+		FC_9.init_1(&FC_8,10);
+		FC_8.init_2(&FC_9,true);
 	}
 
 	void calculate(){
