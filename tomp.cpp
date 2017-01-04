@@ -20,12 +20,14 @@ omp_get_num_threads()
 
 float right=0;
 
+FILE *output; 
+
 Convolutional_Neural_Network *CNN;
 
 void input_minst(MinstImg input,int index){
 	for (int i=0;i<28;i++){
 		for (int j=0;j<28;j++){
-			CNN[index].INPUT.y.d[0][i][j]=input.ImgData[i][j];
+			CNN[index].INPUT.y.d[0][i+1][j+1]=input.ImgData[i][j];
 		}
 	}
 }
@@ -46,8 +48,12 @@ int main(){
 	int time_s;
 	int t_num=4;
 	int id=0;
+	float eta=0.001;
+	float eta_min=0.00003;
+	float eta_m=0.9985;
 	omp_set_num_threads(t_num);
-	std::cout<<t_num<<'\n';
+	output=fopen("output.csv","a");
+	std::cout<<"The threads will be use:"<<t_num<<'\n';
 	printf("===========\nMINST_READ\n===========\n");
 	printf("--\nReading training images.\n");
 	ImgArr train_img = read_Img("./MINST/train-images.idx3-ubyte");
@@ -99,7 +105,7 @@ int main(){
 
 	std::cout<<std::endl;
 	time_s=time(NULL);
-	for(int j=0;j<1000000;j++){
+	for(int j=0;j<10000000;j++){
 		#pragma omp parallel private(id)
 		{
 			id=omp_get_thread_num();
@@ -108,6 +114,7 @@ int main(){
 			for (int i=0;i<60;i++){
 				input_minst(train_img->ImgPtr[i+((j%1000)*60)],id);
 				CNN[id].train(train_label->LabelPtr[i+((j%1000)*60)].LabelData);
+//				std::cerr<<"train"<<std::endl;
 			}
 			#pragma omp barrier
 			//std::cerr<<"barrier"<<std::endl;
@@ -117,7 +124,7 @@ int main(){
 				for(int i=0;i<t_num;i++)
 				{
 					//std::cerr<<CNN[i].C_1.d_w.d[0][0][0][0]<<std::endl;
-					CNN[0].change_weight(&(CNN[i]),0.0001);
+					CNN[0].change_weight(&(CNN[i]),eta);
 				}
 			}
 			#pragma omp barrier
@@ -129,13 +136,13 @@ int main(){
 			//std::cerr<<"copy"<<std::endl;
 			CNN[id].copy_weight(&(CNN[0]));
 		end_copy:
-			if ((j%1000)==0)
+			if ((j%200)==0)
 			{
      			#pragma omp for 
-			for(int l=0;l<10000;l++){
-				input_minst(test_img->ImgPtr[l],id);
-				CNN[id].calculate();
-				if(sort(test_label->LabelPtr[l].LabelData)==sort(CNN[id].FC_9.y)){
+				for(int l=0;l<10000;l++){
+					input_minst(test_img->ImgPtr[l],id);
+					CNN[id].calculate();
+					if(sort(test_label->LabelPtr[l].LabelData)==sort(CNN[id].FC_9.y)){
 					right=right+1;
 					//std::cerr<<sort(CNN[id].FC_9.y)<<'|';
 				}
@@ -143,8 +150,12 @@ int main(){
 			#pragma omp barrier
 			#pragma omp master
 			{
-				std::cerr<<j<<'|'<<(time(NULL)-time_s)<<std::endl;
+				if(eta>eta_min){
+					eta=eta*eta_m;
+				}
+				std::cerr<<j<<'|'<<(time(NULL)-time_s)<<'|'<<eta<<std::endl;
 				std::cout<<right/10000<<std::endl;
+				fprintf(output,"%d,%f\n",j/1000,right/10000);
 				right=0;
 				time_s=time(NULL);
 			}
