@@ -46,7 +46,7 @@ int sort(float *data){
 
 int main(){
 	int time_s;
-	int t_num=4;
+	int t_num=12;
 	int id=0;
 	float eta=0.001;
 	float eta_min=0.00003;
@@ -124,7 +124,11 @@ int main(){
 				for(int i=0;i<t_num;i++)
 				{
 					//std::cerr<<CNN[i].C_1.d_w.d[0][0][0][0]<<std::endl;
+<<<<<<< HEAD
 					CNN[0].change_weight(&(CNN[i]),eta);
+=======
+					CNN[0].change_weight(&(CNN[i]),0.00075);
+>>>>>>> origin/master
 				}
 			}
 			#pragma omp barrier

@@ -640,6 +640,17 @@ public:
 	//w
 	mat w;
 	mat d_w;
+<<<<<<< HEAD
+=======
+	//bias
+	array bias;
+	array d_bias;
+	//c
+	mat c;
+	mat d_c;
+	//alpha
+	mat d_alpha;
+>>>>>>> origin/master
 	//last
 	int last_m,last_n;
 	int last_num;
@@ -656,7 +667,16 @@ public:
 		last_num=last_layer->num;
 		w.init(last_layer->num,n,NULL);
 		d_w.init(last_layer->num,n);
+<<<<<<< HEAD
 		dleta.init(num);
+=======
+		c.init(last_layer->num,n);
+		d_c.init(last_layer->num,n);
+		d_alpha.init(last_layer->num,n);
+		dleta.init(num);
+		bias.init(num);
+		d_bias.init(num);
+>>>>>>> origin/master
 	#ifdef _DEBUG_INIT_
 		std::cout<<"--\nOutput_Layer Init:"<<std::endl;
 		std::cout<<"n,last_num"<<std::endl;
@@ -665,6 +685,7 @@ public:
 	}
 
 	void calculate_y(){
+<<<<<<< HEAD
 		float sum_w=0;
 		float sum=0;
 		float sum_e=0;
@@ -681,35 +702,103 @@ public:
 				sum+=w.d[j][i]*last_layer->y[j]; 
 			} 
 			y[i]=exp(sum)/sum_w;
+=======
+		float sum_c=0;
+		float sum=0;
+		for (int i=0;i<num;i++){
+			sum=0;
+			sum_c=0;
+			for(int j=0;j<last_num;j++){
+				sum_c+=exp(c.d[j][i]); 
+			} 
+			for(int j=0;j<last_num;j++){
+				sum=sum+(exp(c.d[j][i])/sum_c)*w.d[j][i]*last_layer->y[j];
+			}
+			y[i]=sigmoid::y(sum+bias.d[i]);
+>>>>>>> origin/master
 		}
 	}
 
 	void calculate_dleta(float *d){
 		for (int i=0;i<num;i++){
+<<<<<<< HEAD
 			dleta.d[i]=(d[i]-y[i]);
+=======
+			dleta.d[i]=sigmoid::df(y[i])*(d[i]-y[i]);
+		}
+		for (int i=0;i<num;i++){
+			for(int j=0;j<last_num;j++){
+				d_alpha.d[j][i]=dleta.d[i]*w.d[j][i]*last_layer->y[j];
+			}
+>>>>>>> origin/master
 		}
 	}
 	
 	void calculate_d_w(){
+<<<<<<< HEAD
+=======
+		float sum_c=0;
+		float sum=0;
+>>>>>>> origin/master
 		for (int i=0;i<num;i++){
 			for (int j=0;j<last_num;j++) {
 				d_w.d[j][i]+=dleta.d[i]*((Fully_Connected_Layer*)last_layer)->y[j];
 			}
+<<<<<<< HEAD
+=======
+			d_bias.d[i]+=dleta.d[i];
+		}
+		for (int i=0;i<num;i++){
+			sum_c=0;
+			sum=0;
+			for(int j=0;j<last_num;j++){
+				sum_c+=exp(c.d[j][i]); 
+			}
+			for(int j=0;j<last_num;j++){
+				sum+=d_alpha.d[j][i]*(c.d[j][i]/sum_c);
+			}
+			for(int j=0;j<last_num;j++){
+				d_c.d[j][i]=(exp(c.d[j][i])/sum_c)*(d_alpha.d[j][i]-sum);
+			}
+>>>>>>> origin/master
 		}
 	}
 
 	void change_weight(float eta){
 		w.add(&d_w,eta);
+<<<<<<< HEAD
 		d_w.reset();
+=======
+		c.add(&d_w,eta);
+		bias.add(&d_bias,eta);
+		d_w.reset();
+		d_c.reset();
+		d_bias.reset();
+		d_alpha.reset();
+>>>>>>> origin/master
 	}
 
 	void change_weight(Output_Layer *source,float eta){
 		w.add(&(source->d_w),eta);
+<<<<<<< HEAD
 		source->d_w.reset();
+=======
+		c.add(&(source->d_c),eta);
+		bias.add(&(source->d_bias),eta);
+		source->d_w.reset();
+		source->d_c.reset();
+		source->d_bias.reset();
+		source->d_alpha.reset();
+>>>>>>> origin/master
 	}
 
 	void copy_weight(Output_Layer *source){
 		w.copy(&(source->w));
+<<<<<<< HEAD
+=======
+		c.copy(&(source->c));
+		bias.copy(&(source->bias));
+>>>>>>> origin/master
 	}
 };
 
@@ -747,7 +836,11 @@ void Fully_Connected_Layer::calculate_dleta(float *d){
 			for (int j=0;j<next_num;j++) {
 				sum=sum+((mat*)((Fully_Connected_Layer*)next_layer)->w)->d[i][j]*((Fully_Connected_Layer*)next_layer)->dleta.d[j];
 			}
+<<<<<<< HEAD
 			dleta.d[i]=sum*sigmoid::df(y[i])/next_num;
+=======
+			dleta.d[i]=sum*sigmoid::df(y[i]);
+>>>>>>> origin/master
 		}
 	}else{
 //		std::cout<<"--\nFully_Connected_Layer calculate_dleta NNN"<<std::endl;
@@ -756,7 +849,11 @@ void Fully_Connected_Layer::calculate_dleta(float *d){
 			for (int j=0;j<next_num;j++) {
 				sum=sum+(((Output_Layer*)next_layer)->w).d[i][j]*((Output_Layer*)next_layer)->dleta.d[j];
 			}
+<<<<<<< HEAD
 			dleta.d[i]=sum*sigmoid::df(y[i])/next_num;
+=======
+			dleta.d[i]=sum*sigmoid::df(y[i]);
+>>>>>>> origin/master
 		}
 	}
 //	std::cout<<"--\nFully_Connected_Layer calculate_dleta EEE"<<std::endl;
@@ -923,7 +1020,11 @@ void Convolutional_Layer::calculate_dleta(){
 	for (int i=0;i<num;i++){
 		for (int j=0;j<m;j++){
 			for (int k=0;k<n;k++){
+<<<<<<< HEAD
 				dleta.d[i][j][k]=next_layer->beta.d[i][j/next_a][k/next_b]*relu::df(y.d[i][j][k])*next_layer->dleta.d[i][j/next_a][k/next_b];
+=======
+				dleta.d[i][j][k]=next_layer->beta.d[i][j/next_a][k/next_a]*relu::df(y.d[i][j][k])*next_layer->dleta.d[i][j/next_a][k/next_a];
+>>>>>>> origin/master
 			}
 		}
 	}
@@ -1028,17 +1129,29 @@ public:
 //	}
 
 	void init(){
+<<<<<<< HEAD
 		INPUT.init(1,30,30);
 		C_1.init_1((void*)&INPUT,8,5,5,true);
 		MP_2.init_1(&C_1,2,2);
 		C_1.init_2(&MP_2);
 		C_3.init_1((void*)&MP_2,16,5,5,false);
+=======
+		INPUT.init(1,29,29);
+		C_1.init_1((void*)&INPUT,20,4,4,true);
+		MP_2.init_1(&C_1,2,2);
+		C_1.init_2(&MP_2);
+		C_3.init_1((void*)&MP_2,40,5,5,false);
+>>>>>>> origin/master
 		MP_2.init_2(&C_3,false);
 		MP_4.init_1(&C_3,3,3);
 		C_3.init_2(&MP_4);
 		FC_7.init_1(&MP_4,300,true);
 		MP_4.init_2(&FC_7,true);
+<<<<<<< HEAD
 		FC_8.init_1(&FC_7,120,false);
+=======
+		FC_8.init_1(&FC_7,150,false);
+>>>>>>> origin/master
 		FC_7.init_2(&FC_8,false);
 		FC_9.init_1(&FC_8,10);
 		FC_8.init_2(&FC_9,true);
