@@ -14,7 +14,7 @@ Use ./topm.cpp
 
 ##Test 
     MINST Database
-    95.96% correct rate 
+    98.39% correct rate 
 ***
 
 ##Usages
