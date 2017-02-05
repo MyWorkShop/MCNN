@@ -13,7 +13,7 @@ class Fully_Connected_Layer;
 //random
 
 float R(){
-	return 1.0*(rand()/(RAND_MAX+1.0)-0.5);
+	return 0.5*(rand()/(RAND_MAX+1.0)-0.5);
 }
 
 float r(){
@@ -468,12 +468,16 @@ public:
 	
 	void calculate_d_w(){
 		for (int i=0;i<num;i++){
+			float sum=0;
+			float sum_=0;
 			for (int j=0;j<m;j++){
 				for (int k=0;k<n;k++){
-					d_beta.d[i]+=dleta.d[i][j][k]*d.d[i][j][k];
-					d_bias.d[i]+=dleta.d[i][j][k];
+					sum+=dleta.d[i][j][k]*d.d[i][j][k];
+					sum_+=dleta.d[i][j][k];
 				}
 			}
+			d_beta.d[i]+=sum;
+			d_bias.d[i]+=sum_;
 		}
 	}
 
@@ -956,11 +960,13 @@ void Convolutional_Layer::calculate_d_w(){
 					}
 				}
 			}
+			float sum=0;
 			for(int j=0;j<m;j++){
 				for(int k=0;k<n;k++){
-					d_bias.d[i]+=dleta.d[i][j][k];
+					sum+=dleta.d[i][j][k];
 				}
 			}
+			d_bias.d[i]+=sum;
 		}
 	}else{
 		for(int i=0;i<num;i++){
@@ -971,7 +977,7 @@ void Convolutional_Layer::calculate_d_w(){
 							float sum=0;
 							for (int l_2=0;l_2<m;l_2++){
 								for (int l_3=0;l_3<n;l_3++){
-									sum=sum+((Max_Pooling_Layer*)last_layer)->y.d[l_1][l_2+j][l_3+k]*w.d[i][l_1][j][k]*dleta.d[i][l_2][l_3];
+									sum=sum+((Max_Pooling_Layer*)last_layer)->y.d[l_1][l_2+j][l_3+k]*dleta.d[i][l_2][l_3];
 								}
 							}
 							d_w.d[i][l_1][j][k]+=sum;
@@ -979,11 +985,13 @@ void Convolutional_Layer::calculate_d_w(){
 					}
 				}
 			}
+			float sum=0;
 			for(int j=0;j<m;j++){
 				for(int k=0;k<n;k++){
-					d_bias.d[i]+=dleta.d[i][j][k];
+					sum+=dleta.d[i][j][k];
 				}
 			}
+			d_bias.d[i]+=sum;
 		}
 	}
 }
@@ -1042,10 +1050,10 @@ public:
 
 	void init(){
 		INPUT.init(1,29,29);
-		C_1.init_1((void*)&INPUT,4,4,4,true,0);
+		C_1.init_1((void*)&INPUT,20,4,4,true,0);
 		MP_2.init_1(&C_1,2,2);
 		C_1.init_2(&MP_2);
-		C_3.init_1((void*)&MP_2,8,5,5,false,0);
+		C_3.init_1((void*)&MP_2,50,5,5,false,0);
 		MP_2.init_2(&C_3,false);
 		MP_4.init_1(&C_3,3,3);
 		C_3.init_2(&MP_4);
