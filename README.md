@@ -1,21 +1,20 @@
 # Convolutional neural networks
 ### By Huang Tao
 
-***
-##OpenMP supported
+##OpenMP has been supported
 Use ./topm.cpp
+
+##Dropout has been supported
 
 ##Layers
 * Convolutional layer
 * Max pooling layer
 * Fully connected layer
 
-***
 
 ##Test 
     MINST Database
-    98.95% correct rate 
-***
+    99.11% correct rate 
 
 ##Usages
 ```c
