@@ -22,7 +22,7 @@ void input_minst(MinstImg input,int index){
 	for (int i=0;i<28;i++){
 		#pragma simd
 		for (int j=0;j<28;j++){
-			CNN[index].INPUT.y.d[0][i][j]=input.ImgData[i][j];
+			CNN[index].INPUT.y.d[0][i+2][j+2]=input.ImgData[i][j];
 		}
 	}
 }
@@ -41,9 +41,9 @@ int sort(float *data){
 
 int main(){
 	int time_s;
-	int t_num=4;
+	int t_num=8;
 	int id=0;
-	float eta=0.001;
+	float eta=0.004;
 	float eta_min=0.00003;
 	float eta_m=0.993;
 	omp_set_num_threads(t_num);
@@ -83,7 +83,7 @@ int main(){
 		CNN[i].init();
 	}
 	for (int i=0;i<20;i++){
-		std::cout<<R()<<'\n'; 
+		std::cout<<R(1)<<'\n'; 
 	}
 
 #ifdef	_DEBUG_MINST_
@@ -103,12 +103,12 @@ int main(){
 
 	std::cout<<std::endl;
 	time_s=time(NULL);
-	for(int j=0;j<15000000;j++){
+	for(int j=0;j<1000000;j++){
 		#pragma omp parallel private(id)
 		{
 			id=omp_get_thread_num();
 			//std::cerr<<id<<std::endl;
-			if ((j%15000)==0)
+			if ((j%1000)==0)
 			{
      			#pragma omp for 
 				for(int l=0;l<10000;l++){
@@ -117,27 +117,27 @@ int main(){
 					if(sort(test_label->LabelPtr[l].LabelData)==sort(CNN[id].FC_9.y)){
 					right=right+1;
 //					std::cerr<<right<<'|';
+					}
 				}
-			}
-			#pragma omp barrier
-			#pragma omp master
-			{
-				if(eta>eta_min){
-					eta=eta*eta_m;
+				#pragma omp barrier
+				#pragma omp master
+				{
+					if(eta>eta_min){
+						eta=eta*eta_m;
+					}
+					std::cerr<<j/1000<<'|'<<(time(NULL)-time_s)<<'|'<<eta<<std::endl;
+					std::cout<<right/10000<<std::endl;
+					fprintf(output,"%d,%f\n",j/1000,right/10000);
+					right=0;
+					time_s=time(NULL);
 				}
-				std::cerr<<j/15000<<'|'<<(time(NULL)-time_s)<<'|'<<eta<<std::endl;
-				std::cout<<right/10000<<std::endl;
-				fprintf(output,"%d,%f\n",j/15000,right/10000);
-				right=0;
-				time_s=time(NULL);
-			}
 			}
 			#pragma omp barrier
 			//std::cerr<<"barrier"<<std::endl;
      		#pragma omp for 
-			for (int i=0;i<4;i++){
-				input_minst(train_img->ImgPtr[i+((j%15000)*4)],id);
-				CNN[id].train(train_label->LabelPtr[i+((j%15000)*4)].LabelData);
+			for (int i=0;i<60;i++){
+				input_minst(train_img->ImgPtr[i+((j%1000)*60)],id);
+				CNN[id].train(train_label->LabelPtr[i+((j%1000)*60)].LabelData);
 //				std::cerr<<"train"<<std::endl;
 			}
 			#pragma omp barrier
