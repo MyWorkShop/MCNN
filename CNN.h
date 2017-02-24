@@ -15,9 +15,9 @@ class Fully_Connected_Layer;
 float R(double num){
 	if ((rand()%2)==0)
 	{
-		return 0.5;
+		return 0.3*num;
 	}else{
-		return -0.5;
+		return -0.3*num;
 	}
 }
 
@@ -537,17 +537,17 @@ public:
 			last_m=((Max_Pooling_Layer*)last_layer)->m;
 			last_n=((Max_Pooling_Layer*)last_layer)->n;
 			last_num=((Max_Pooling_Layer*)last_layer)->num;
-			((tube*)w)->init(last_num,last_m,last_n,n,last_num*last_m*last_n);
+			((tube*)w)->init(last_num,last_m,last_n,n,1);
 			((tube*)d_w)->init(last_num,last_m,last_n,n);
 		}else{
 			w=new mat;
 			d_w=new mat;
 			last_num=((Fully_Connected_Layer*)last_layer)->num;
-			((mat*)w)->init(((Fully_Connected_Layer*)last_layer)->num,n,((Fully_Connected_Layer*)last_layer)->num);
+			((mat*)w)->init(((Fully_Connected_Layer*)last_layer)->num,n,1);
 			((mat*)d_w)->init(((Fully_Connected_Layer*)last_layer)->num,n);
 		}
 		dleta.init(num);
-		bias.init(num);
+		bias.init(num,3);
 		d_bias.init(num);
 	#ifdef _DEBUG_INIT_
 		std::cout<<"--\nFully_Connected_Layer Init Stage 1:"<<std::endl;
@@ -669,7 +669,7 @@ public:
 		last_layer=(Fully_Connected_Layer*)last;
 		y=new float[num];
 		last_num=last_layer->num;
-		w.init(last_layer->num,n,last_layer->num);
+		w.init(last_layer->num,n,1);
 		d_w.init(last_layer->num,n);
 		dleta.init(num);
 	#ifdef _DEBUG_INIT_
@@ -796,8 +796,8 @@ void Convolutional_Layer::init_1(void *last,int num_pics,int a_core,int b_core,b
 	}
 	m=last_m-a+1;
 	n=last_n-a+1;
-	w.init(num,last_num,a,b,a*b*last_num/2.0);
-	bias.init(num);
+	w.init(num,last_num,a,b,1);
+	bias.init(num,3);
 	d_w.init(num,last_num,a,b);
 	d_bias.init(num);
 	y.init(num,m,n);
@@ -853,7 +853,7 @@ void Max_Pooling_Layer::init_1(Convolutional_Layer *last,int a_core,int b_core){
 	n=last->n/b;
 	last_layer=last;
 	beta.init(num,1);
-	bias.init(num);
+	bias.init(num,3);
 	d_beta.init(num);
 	d_bias.init(num);
 	y.init(num,m,n);
@@ -946,9 +946,22 @@ void Max_Pooling_Layer::calculate_dleta(){
 
 void Convolutional_Layer::calculate_dleta(){
 	for (int i=0;i<num;i++){
-		for (int j=0;j<m;j++){
-			for (int k=0;k<n;k++){
-				dleta.d[i][j][k]=next_layer->beta.d[i]*relu::df(y.d[i][j][k])*next_layer->dleta.d[i][j/next_a][k/next_b];
+		for (int j=0;j<(m/next_a);j++){
+			for (int k=0;k<(n/next_b);k++){
+				double max=y.d[i][j*next_a][k*next_b];
+				int max_x=0;
+				int max_y=0;
+				for (int l_1=0;l_1<next_a;l_1++){
+					for (int l_2=0;l_2<next_b;l_2++){
+						dleta.d[i][j*next_a+l_1][k*next_b+l_2]=0;
+						if(y.d[i][j*next_a+l_1][k*next_b+l_2]>=max){
+							max=y.d[i][j*next_a+l_1][k*next_b+l_2];
+							max_x=l_1;
+							max_y=l_2;
+						}
+					}
+				}
+				dleta.d[i][j*next_a+max_x][k*next_b+max_y]=next_layer->beta.d[i]*relu::df(y.d[i][j*next_a+max_x][k*next_b+max_y])*next_layer->dleta.d[i][j][k];
 			}
 		}
 	}
