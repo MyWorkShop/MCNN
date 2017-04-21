@@ -41,7 +41,7 @@ int sort(float *data){
 
 int main(){
 	int time_s;
-	int t_num=2;
+	int t_num=8;
 	int id=0;
 	float eta=0.001;
 	float eta_min=0.00003;
@@ -103,12 +103,12 @@ int main(){
 
 	std::cout<<std::endl;
 	time_s=time(NULL);
-	for(int j=0;j<15000000;j++){
+	for(int j=0;j<500000;j++){
 		#pragma omp parallel private(id)
 		{
 			id=omp_get_thread_num();
 			//std::cerr<<id<<std::endl;
-			if ((j%15000)==0)
+			if ((j%500)==0)
 			{
      			#pragma omp for 
 				for(int l=0;l<10000;l++){
@@ -125,9 +125,9 @@ int main(){
 				if(eta>eta_min){
 					eta=eta*eta_m;
 				}
-				std::cerr<<j/15000<<'|'<<(time(NULL)-time_s)<<'|'<<eta<<std::endl;
+				std::cerr<<j/500<<'|'<<(time(NULL)-time_s)<<'|'<<eta<<std::endl;
 				std::cout<<right/10000<<std::endl;
-				fprintf(output,"%d,%f\n",j/15000,right/10000);
+				fprintf(output,"%d,%f\n",j/500,right/10000);
 				right=0;
 				time_s=time(NULL);
 			}
@@ -135,9 +135,9 @@ int main(){
 			#pragma omp barrier
 			//std::cerr<<"barrier"<<std::endl;
      		#pragma omp for 
-			for (int i=0;i<4;i++){
-				input_minst(train_img->ImgPtr[i+((j%15000)*4)],id);
-				CNN[id].train(train_label->LabelPtr[i+((j%15000)*4)].LabelData);
+			for (int i=0;i<120;i++){
+				input_minst(train_img->ImgPtr[i+((j%500)*120)],id);
+				CNN[id].train(train_label->LabelPtr[i+((j%500)*120)].LabelData);
 //				std::cerr<<"train"<<std::endl;
 			}
 			#pragma omp barrier
