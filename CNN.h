@@ -19,9 +19,9 @@ float r(){
 float R(float num){
 	if ((rand()%2)==0)
 	{
-		return 0.35*num*r();
+		return 0.1*num*r();
 	}else{
-		return -0.35*num*r();
+		return -0.1*num*r();
 	}
 }
 
@@ -34,6 +34,28 @@ namespace sigmoid{
 	
 	float df(float y){
 		return y*(1-y);
+	}
+}
+
+namespace line{
+	float y(float x){
+		return x;
+	}
+	
+	float df(float y){
+		return 1;
+	}
+}
+
+namespace tan_h{
+	float y(float x){
+		float a=exp(x);
+		float b=exp(-x);
+		return (a-b)/(a+b);
+	}
+	
+	float df(float y){
+		return 1-y*y;
 	}
 }
 
@@ -52,8 +74,18 @@ namespace relu{
 		{
 			return 1;
 		}else{
-			return 0.01;
+			return 0.0;
 		}
+	}
+}
+
+namespace softplus{
+	float y(float x){
+		return log(exp(x)+1);
+	}
+
+	float df(float y){
+		return 1-exp(-y);
 	}
 }
 
@@ -399,7 +431,7 @@ public:
 							for(int l=0;l<last_num;l++){
 								sum=sum+core(j,k,l,i);
 							}
-							y.d[i][j][k]=relu::y(sum+bias.d[i]);
+							y.d[i][j][k]=softplus::y(sum+bias.d[i]);
 						}else{
 							y.d[i][j][k]=0;
 						}
@@ -414,7 +446,7 @@ public:
 						for(int l=0;l<last_num;l++){
 							sum=sum+core(j,k,l,i);
 						}
-						y.d[i][j][k]=relu::y(dropout*sum+bias.d[i]);
+						y.d[i][j][k]=softplus::y(dropout*sum+bias.d[i]);
 					}
 				}
 			}
@@ -503,7 +535,7 @@ public:
 			#ifdef	_DEBUG_IN_MP_
 				printf("D:[%d][%d][%d]=%f\n",i,j,k,d.d[i][j][k]);
 			#endif
-					y.d[i][j][k]=sigmoid::y(beta.d[i]*d.d[i][j][k]+bias.d[i]);
+					y.d[i][j][k]=tan_h::y(beta.d[i]*d.d[i][j][k]+bias.d[i]);
 
 			#ifdef	_DEBUG_IN_MP_
 				printf("y:[%d][%d][%d]=%f\n",i,j,k,y.d[i][j][k]);
@@ -620,9 +652,9 @@ public:
 								}
 							}
 						}
-						y[i]=sigmoid::y(sum+bias.d[i]);
+						y[i]=tan_h::y(sum+bias.d[i]);
 					}else{
-						y[i]=0;
+						y[i]=-1;
 					}
 				}
 			}else{
@@ -632,9 +664,9 @@ public:
 						for (int j=0;j<last_num;j++){
 							sum=sum+((mat*)w)->d[j][i]*((Fully_Connected_Layer*)last_layer)->y[j];
 						}
-						y[i]=sigmoid::y(sum+bias.d[i]);
+						y[i]=tan_h::y(sum+bias.d[i]);
 					}else{
-						y[i]=0;
+						y[i]=-1;
 					}
 				}
 			}
@@ -649,7 +681,7 @@ public:
 							}
 						}
 					}
-					y[i]=sigmoid::y(dropout*sum+bias.d[i]);
+					y[i]=tan_h::y(dropout*sum+bias.d[i]);
 				}
 			}else{
 				for (int i=0;i<num;i++){
@@ -657,7 +689,7 @@ public:
 					for (int j=0;j<last_num;j++){
 						sum=sum+((mat*)w)->d[j][i]*((Fully_Connected_Layer*)last_layer)->y[j];
 					}
-					y[i]=sigmoid::y(dropout*sum+bias.d[i]);
+					y[i]=tan_h::y(dropout*sum+bias.d[i]);
 				}
 			}
 		}
@@ -855,7 +887,7 @@ void Fully_Connected_Layer::calculate_dleta(float *d){
 //	std::cout<<"--\nFully_Connected_Layer calculate_dleta SSS"<<std::endl;
 	if(end==true){
 		for (int i=0;i<num;i++){
-			dleta.d[i]=sigmoid::df(y[i])*(d[i]-y[i]);
+			dleta.d[i]=tan_h::df(y[i])*(d[i]-y[i]);
 		}
 	}else if (out==false){
 //		std::cout<<"--\nFully_Connected_Layer calculate_dleta OOO"<<std::endl;
@@ -864,7 +896,7 @@ void Fully_Connected_Layer::calculate_dleta(float *d){
 			for (int j=0;j<next_num;j++) {
 				sum=sum+((mat*)((Fully_Connected_Layer*)next_layer)->w)->d[i][j]*((Fully_Connected_Layer*)next_layer)->dleta.d[j];
 			}
-			dleta.d[i]=sum*sigmoid::df(y[i]);
+			dleta.d[i]=sum*tan_h::df(y[i]);
 		}
 	}else{
 //		std::cout<<"--\nFully_Connected_Layer calculate_dleta NNN"<<std::endl;
@@ -873,7 +905,7 @@ void Fully_Connected_Layer::calculate_dleta(float *d){
 			for (int j=0;j<next_num;j++) {
 				sum=sum+(((Output_Layer*)next_layer)->w).d[i][j]*((Output_Layer*)next_layer)->dleta.d[j];
 			}
-			dleta.d[i]=sum*sigmoid::df(y[i]);
+			dleta.d[i]=sum*tan_h::df(y[i]);
 		}
 	}
 //	std::cout<<"--\nFully_Connected_Layer calculate_dleta EEE"<<std::endl;
@@ -1000,13 +1032,12 @@ void Max_Pooling_Layer::calculate_dleta(){
 					for (int l=0;l<next_num;l++){
 						sum=sum+((Fully_Connected_Layer*)next_layer)->dleta.d[l]*((tube*)((Fully_Connected_Layer*)next_layer)->w)->d[i][j][k][l];
 					}
-					dleta.d[i][j][k]=sum*sigmoid::df(y.d[i][j][k]);
+					dleta.d[i][j][k]=sum*tan_h::df(y.d[i][j][k]);
 				}
 			}
 		}
 	}else{
 //		std::cout<<num<<','<<m<<','<<n<<','<<next_num<<','<<next_a<<','<<next_b<<std::endl;
-		for (int i=0;i<num;i++){
 			for (int j=0;j<m;j++){
 				for (int k=0;k<n;k++){
 					float sum=0;
@@ -1032,6 +1063,7 @@ void Max_Pooling_Layer::calculate_dleta(){
 						y_e=next_b;
 					}
 //					std::cout<<x_s<<'|'<<x_e<<'|'<<y_s<<'|'<<y_e<<std::endl;
+		for (int i=0;i<num;i++){
 					for (int l_1=0;l_1<next_num;l_1++){
 //						if(((Convolutional_Layer*)next_layer)->connect.d[i][l_1]==1){
 							for (int l_2=x_s;l_2<x_e;l_2++){
@@ -1042,7 +1074,7 @@ void Max_Pooling_Layer::calculate_dleta(){
 							}
 //						}
 					}
-					dleta.d[i][j][k]=sum*sigmoid::df(y.d[i][j][k]);
+					dleta.d[i][j][k]=sum*tan_h::df(y.d[i][j][k]);
 				}
 			}
 		}
@@ -1053,7 +1085,7 @@ void Convolutional_Layer::calculate_dleta(){
 	for (int i=0;i<num;i++){
 		for (int j=0;j<m;j++){
 			for (int k=0;k<n;k++){
-				dleta.d[i][j][k]=next_layer->beta.d[i]*relu::df(y.d[i][j][k])*next_layer->dleta.d[i][j/next_a][k/next_b];
+				dleta.d[i][j][k]=next_layer->beta.d[i]*softplus::df(y.d[i][j][k])*next_layer->dleta.d[i][j/next_a][k/next_b];
 			}
 		}
 	}
@@ -1147,40 +1179,18 @@ public:
 	Fully_Connected_Layer FC_8;
 	Output_Layer FC_9;
 
-//	void init(){
-//		INPUT.init(1,28,28);
-//		C_1.init_1((void*)&INPUT,8,3,3,true);
-//		MP_2.init_1(&C_1,2,2);
-//		C_1.init_2(&MP_2);
-//		C_3.init_1((void*)&MP_2,16,2,2,false);
-//		MP_2.init_2(&C_3,false);
-//		MP_4.init_1(&C_3,2,2);
-//		C_3.init_2(&MP_4);
-//		C_5.init_1((void*)&MP_4,32,3,3,false);
-//		MP_4.init_2(&C_5,false);
-//		MP_6.init_1(&C_5,2,2);
-//		C_5.init_2(&MP_6);
-//		FC_7.init_1(&MP_6,128,true);
-//		MP_6.init_2(&FC_7,true);
-//		FC_8.init_1(&FC_7,10,false);
-//		FC_7.init_2(&FC_8);
-//		FC_9.init_1(&FC_8,10,false);
-//		FC_8.init_2(&FC_9);
-//		FC_9.init_2(NULL);
-//	}
-
 	void init(){
 		INPUT.init(1,32,32);
-		C_1.init_1((void*)&INPUT,20,5,5,true,0,1.0);
+		C_1.init_1((void*)&INPUT,12,5,5,true,0,1.0);
 		MP_2.init_1(&C_1,2,2);
 		C_1.init_2(&MP_2);
-		C_3.init_1((void*)&MP_2,50,5,5,false,0,1.0);
+		C_3.init_1((void*)&MP_2,28,5,5,false,0,1.0);
 		MP_2.init_2(&C_3,false);
 		MP_4.init_1(&C_3,2,2);
 		C_3.init_2(&MP_4);
-		FC_7.init_1(&MP_4,180,true,1.0);
+		FC_7.init_1(&MP_4,384,true,0.75);
 		MP_4.init_2(&FC_7,true);
-		FC_8.init_1(&FC_7,80,false,0.5);
+		FC_8.init_1(&FC_7,128,false,0.5);
 		FC_7.init_2(&FC_8,false);
 		FC_9.init_1(&FC_8,10,0.00000);
 		FC_8.init_2(&FC_9,true);
