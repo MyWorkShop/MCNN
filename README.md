@@ -1,22 +1,23 @@
 # Convolutional neural networks
 ### By Huang Tao
 
-##OpenMP has been supported
+## OpenMP has been supported
 Use ./topm.cpp
 
-##Dropout has been supported
+## Dropout has been supported
 
-##Layers
-* Convolutional layer
+## Layers
+* Convolutional layer(support dropout)
 * Max pooling layer
-* Fully connected layer
+* Fully connected layer(support dropout)
+* Softmax layer
 
 
-##Test 
+## Test 
     MINST Database
     99.11% correct rate 
 
-##Usages
+## Usages
 ```c
 ImgArr train_img = read_Img("./MINST/train-images.idx3-ubyte");
 ImgArr test_img = read_Img("./MINST/t10k-images.idx3-ubyte");
