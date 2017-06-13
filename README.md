@@ -6,9 +6,9 @@
 ## Dropout has been supported
 
 ## Layers
-* Convolutional layer(support dropout)
+* Convolutional layer(supporting dropout)
 * Max pooling layer
-* Fully connected layer(support dropout)
+* Fully connected layer(supporting dropout)
 * Softmax layer
 
 
@@ -50,7 +50,7 @@ sort(test_label->LabelPtr[l].LabelData)
 Get the output index.
 
 ```c
-CNN.train(train_label->LabelPtr[i].LabelData,0.0005,0.0005,0.0005);
+CNN.train(train_label->LabelPtr[i].LabelData);
 ```
     
 Train the neural network with the label from MNIST database.(input the data first)
