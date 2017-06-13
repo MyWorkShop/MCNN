@@ -1,22 +1,22 @@
-typedef struct MinstImg{
+typedef struct MNISTImg{
 	int c;
 	int r;
 	float** ImgData;
-}MinstImg;
+}MNISTImg;
 
-typedef struct MinstImgArr{
+typedef struct MNISTImgArr{
 	int ImgNum;
-	MinstImg* ImgPtr;
+	MNISTImg* ImgPtr;
 }*ImgArr;
 
-typedef struct MinstLabel{
+typedef struct MNISTLabel{
 	int l;
 	float* LabelData;
-}MinstLabel;
+}MNISTLabel;
 
-typedef struct MinstLabelArr{
+typedef struct MNISTLabelArr{
 	int LabelNum;
-	MinstLabel* LabelPtr;
+	MNISTLabel* LabelPtr;
 }*LabelArr;
 
 
@@ -59,9 +59,9 @@ ImgArr read_Img(const char* filename) // 读入图像
     int i,r,c;
 
     // 图像数组的初始化
-    ImgArr imgarr=(ImgArr)malloc(sizeof(MinstImgArr));
+    ImgArr imgarr=(ImgArr)malloc(sizeof(MNISTImgArr));
     imgarr->ImgNum=number_of_images;
-    imgarr->ImgPtr=(MinstImg*)malloc(number_of_images*sizeof(MinstImg));
+    imgarr->ImgPtr=(MNISTImg*)malloc(number_of_images*sizeof(MNISTImg));
 
     for(i = 0; i < number_of_images; ++i)  
     {  
@@ -108,9 +108,9 @@ LabelArr read_Lable(const char* filename)// 读入图像
     int i,l;
 
     // 图像标记数组的初始化
-    LabelArr labarr=(LabelArr)malloc(sizeof(MinstLabelArr));
+    LabelArr labarr=(LabelArr)malloc(sizeof(MNISTLabelArr));
     labarr->LabelNum=number_of_labels;
-    labarr->LabelPtr=(MinstLabel*)malloc(number_of_labels*sizeof(MinstLabel));
+    labarr->LabelPtr=(MNISTLabel*)malloc(number_of_labels*sizeof(MNISTLabel));
 
     for(i = 0; i < number_of_labels; ++i)  
     {

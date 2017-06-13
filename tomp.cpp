@@ -1,5 +1,5 @@
 //#define _DEBUG_INIT_
-//#define _DEBUG_MINST_
+//#define _DEBUG_MNIST_
 //#define _DEBUG_IN_MP_
 //#define _DEBUG_Y_
 //#define _DEBUG_T_
@@ -9,7 +9,7 @@
 #include <assert.h>
 #include <time.h>
 #include "CNN.h"
-#include "MINST/MINST.h"
+#include "MNIST/MNIST.h"
 #include <omp.h>
 
 float right=0;
@@ -18,7 +18,7 @@ FILE *output;
 
 Convolutional_Neural_Network *CNN;
 
-void input_minst(MinstImg input,int index){
+void input_MNIST(MNISTImg input,int index){
 	for (int i=0;i<28;i++){
 		#pragma simd
 		for (int j=0;j<28;j++){
@@ -49,27 +49,27 @@ int main(){
 	omp_set_num_threads(t_num);
 	output=fopen("output.csv","a");
 	std::cout<<"The threads will be use:"<<t_num<<'\n';
-	printf("===========\nMINST_READ\n===========\n");
+	printf("===========\nMNIST_READ\n===========\n");
 	printf("--\nReading training images.\n");
-	ImgArr train_img = read_Img("./MINST/train-images.idx3-ubyte");
+	ImgArr train_img = read_Img("./MNIST/train-images.idx3-ubyte");
 	printf("Read training images finished.\n");
 	printf("Training images data:\n");
 	printf("%d images.\n",train_img->ImgNum);
 	printf("--\nReading testing images.\n");
 	printf("Size : %d*%d.\n",train_img->ImgPtr[0].c,train_img->ImgPtr[0].r);
-	ImgArr test_img = read_Img("./MINST/t10k-images.idx3-ubyte");
+	ImgArr test_img = read_Img("./MNIST/t10k-images.idx3-ubyte");
 	printf("Read testing images finished.\n");
 	printf("Testing images data:\n");
 	printf("%d images.\n",test_img->ImgNum);
 	printf("Size : %d*%d.\n",test_img->ImgPtr[0].c,test_img->ImgPtr[0].r);
 
 	printf("--\nReading training lables.\n");
-	LabelArr train_label = read_Lable("./MINST/train-labels.idx1-ubyte");
+	LabelArr train_label = read_Lable("./MNIST/train-labels.idx1-ubyte");
 	printf("Read training lables finished.\n");
 	printf("Training lables data:\n");
 	printf("%d lables.\n",train_label->LabelNum);
 	printf("--\nReading testing lables.\n");
-	LabelArr test_label = read_Lable("./MINST/t10k-labels.idx1-ubyte");
+	LabelArr test_label = read_Lable("./MNIST/t10k-labels.idx1-ubyte");
 	printf("Read testing lables finished.\n");
 	printf("Testing lables data:\n");
 	printf("%d lables.\n",test_label->LabelNum);
@@ -86,8 +86,8 @@ int main(){
 //		std::cout<<R()<<'\n'; 
 	}
 
-#ifdef	_DEBUG_MINST_
-	printf("===========\nMINST_SHOW\n===========\n");
+#ifdef	_DEBUG_MNIST_
+	printf("===========\nMNIST_SHOW\n===========\n");
 	printf("train_img\n");
 	for (int i=0;i<28;i++){
 		for (int j=0;j<28;j++){
@@ -112,7 +112,7 @@ int main(){
 			{
      			#pragma omp for 
 				for(int l=0;l<10000;l++){
-					input_minst(test_img->ImgPtr[l],id);
+					input_MNIST(test_img->ImgPtr[l],id);
 					CNN[id].calculate();
 					if(sort(test_label->LabelPtr[l].LabelData)==sort(CNN[id].FC_9.y)){
 					right=right+1;
@@ -136,7 +136,7 @@ int main(){
 			//std::cerr<<"barrier"<<std::endl;
      		#pragma omp for 
 			for (int i=0;i<120;i++){
-				input_minst(train_img->ImgPtr[i+((j%500)*120)],id);
+				input_MNIST(train_img->ImgPtr[i+((j%500)*120)],id);
 				CNN[id].train(train_label->LabelPtr[i+((j%500)*120)].LabelData);
 //				std::cerr<<"train"<<std::endl;
 			}

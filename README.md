@@ -2,7 +2,6 @@
 ### By Huang Tao
 
 ## OpenMP has been supported
-Use ./topm.cpp
 
 ## Dropout has been supported
 
@@ -14,29 +13,29 @@ Use ./topm.cpp
 
 
 ## Test 
-    MINST Database
+    MNIST Database
     99.11% correct rate 
 
 ## Usages
 ```c
-ImgArr train_img = read_Img("./MINST/train-images.idx3-ubyte");
-ImgArr test_img = read_Img("./MINST/t10k-images.idx3-ubyte");
+ImgArr train_img = read_Img("./MNIST/train-images.idx3-ubyte");
+ImgArr test_img = read_Img("./MNIST/t10k-images.idx3-ubyte");
 ```
 
-Read MINST image data.
+Read MNIST image data.
 
 ```c
-LabelArr train_label = read_Lable("./MINST/train-labels.idx1-ubyte");
-LabelArr test_label = read_Lable("./MINST/t10k-labels.idx1-ubyte");
+LabelArr train_label = read_Lable("./MNIST/train-labels.idx1-ubyte");
+LabelArr test_label = read_Lable("./MNIST/t10k-labels.idx1-ubyte");
 ```
 
-Read MINST label data.
+Read MNIST label data.
 
 ```c
-input_minst(test_img->ImgPtr[l]);
+input_MNIST(test_img->ImgPtr[l]);
 ```
 
-Input the data to the neural network from MINST database.
+Input the data to the neural network from MNIST database.
 
 ```c
 CNN.calculate();
@@ -54,7 +53,7 @@ Get the output index.
 CNN.train(train_label->LabelPtr[i].LabelData,0.0005,0.0005,0.0005);
 ```
     
-Train the neural network with the label from MINST database.(input the data first)
+Train the neural network with the label from MNIST database.(input the data first)
 
 ***
 
