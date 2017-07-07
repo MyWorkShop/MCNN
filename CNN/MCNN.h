@@ -13,19 +13,21 @@ class Middle_Convolutional_Neural_Network
     void init()
     {
 	INPUT.init(1, 32, 32);
-	C_1.init_1(&INPUT, 10, 5, 5, true, 0, 1.0);
+	C_1.init_1(&INPUT, 12, 7, 7, true, 0, 1.0);
 	MP_2.init_1(&C_1, 2, 2);
 	C_1.init_2(&MP_2);
 	C_3.init_1(&MP_2, 24, 6, 6, false, 0, 1.0);
 	MP_2.init_2(&C_3, false);
-	MP_4.init_1(&C_3, 3, 3);
+	MP_4.init_1(&C_3, 2, 2);
 	C_3.init_2(&MP_4);
-	FC_7.init_1(&MP_4, 256, true, 0.75);
+	FC_7.init_1(&MP_4, 284, true, 0.5);
 	MP_4.init_2(&FC_7, true);
-	FC_8.init_1(&FC_7, 96, false, 0.75);
+	FC_8.init_1(&FC_7, 128, false, 0.75);
 	FC_7.init_2(&FC_8, false);
 	FC_9.init_1(&FC_8, 10);
 	FC_8.init_2(&FC_9, true);
+	C_1.udout();
+	C_3.udout();
     }
 
     void calculate()
@@ -101,8 +103,8 @@ class Middle_Convolutional_Neural_Network
 
     void train(float *y)
     {
-	C_1.dout();
-	C_3.dout();
+//	C_1.dout();
+//	C_3.dout();
 	FC_7.dout();
 	FC_8.dout();
 	calculate();
@@ -186,8 +188,8 @@ class Middle_Convolutional_Neural_Network
 	std::cout << "==========================================" << std::endl;
 #endif
 
-	C_1.udout();
-	C_3.udout();
+//	C_1.udout();
+//	C_3.udout();
 	FC_7.udout();
 	FC_8.udout();
     }

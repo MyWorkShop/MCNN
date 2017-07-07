@@ -6,15 +6,17 @@ class Small_Convolutional_Neural_Network
     Max_Pooling_Layer MP_2;
     Fully_Connected_Layer FC_3;
 
-    void init()
+    void init(int last_num)
     {
-	INPUT.init(1, 13, 13);
-	C_1.init_1(&INPUT, 6, 5, 5, true, 0, 1.0);
-	MP_2.init_1(&C_1, 3, 3);
+	INPUT.init(last_num, 8, 8);
+	C_1.init_1(&INPUT, 3, 5, 5, true, 0, 1.0);
+	MP_2.init_1(&C_1, 2, 2);
 	C_1.init_2(&MP_2);
-	FC_3.init_1(&MP_2, 2, true, 1);
+	FC_3.init_1(&MP_2, 1, true, 1);
 	MP_2.init_2(&FC_3, true);
 	FC_3.init_2(NULL, false);
+	C_1.udout();
+	FC_3.udout();
     }
 
     void calculate()
@@ -36,13 +38,8 @@ class Small_Convolutional_Neural_Network
 #endif
     }
 
-    void train(float *y)
+    void calculate_delta()
     {
-	calculate();
-#ifdef _DEBUG_T_
-	std::cout << "FC_3" << std::endl;
-#endif
-	FC_3.calculate_delta(y);
 #ifdef _DEBUG_T_
 	std::cout << "MP_2" << std::endl;
 #endif
@@ -54,7 +51,10 @@ class Small_Convolutional_Neural_Network
 #ifdef _DEBUG_T_
 	std::cout << "==========================================" << std::endl;
 #endif
+    }
 
+    void calculate_d_w()
+    {
 #ifdef _DEBUG_T_
 	std::cout << "FC_3" << std::endl;
 #endif
