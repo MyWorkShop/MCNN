@@ -48,12 +48,12 @@ void CSC_Layer::init_1(Basic_Layer *last, int num_pics, int a_core, int b_core)
 	    }
 	}
     }
-//#ifdef _DEBUG_INIT_
+#ifdef _DEBUG_INIT_
     std::cout
 	<< "--\nCSC_Layer Init Stage 1:" << std::endl;
     std::cout << "last_num,num_pics,a_core,b_core,m,n" << std::endl;
     std::cout << last_num << ',' << num_pics << ',' << a_core << ',' << b_core << ',' << m << ',' << n << std::endl;
-//#endif
+#endif
 }
 
 void CSC_Layer::init_2(Convolutional_Layer *next)
@@ -154,7 +154,17 @@ void CSC_Layer::change_weight(float eta)
 	{
 	    for (int k = 0; k < n; k++)
 	    {
-		fliter[i][j][k].change_weight(eta);
+		fliter[i][0][0].change_weight(&fliter[i][j][k],eta);
+	    }
+	}
+    }
+    for (int i = 0; i < num; i++)
+    {
+	for (int j = 0; j < m; j++)
+	{
+	    for (int k = 0; k < n; k++)
+	    {
+		fliter[i][j][k].copy_weight(&fliter[i][0][0]);
 	    }
 	}
     }
@@ -168,7 +178,17 @@ void CSC_Layer::change_weight(CSC_Layer *source, float eta)
 	{
 	    for (int k = 0; k < n; k++)
 	    {
-		fliter[i][j][k].change_weight(&(source->fliter[i][j][k]), eta);
+		fliter[i][0][0].change_weight(&(source->fliter[i][j][k]), eta);
+	    }
+	}
+    }
+    for (int i = 0; i < num; i++)
+    {
+	for (int j = 0; j < m; j++)
+	{
+	    for (int k = 0; k < n; k++)
+	    {
+		fliter[i][j][k].copy_weight(&fliter[i][0][0]);
 	    }
 	}
     }
