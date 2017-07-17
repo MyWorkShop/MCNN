@@ -8,9 +8,9 @@ class Small_Convolutional_Neural_Network
 
     void init(int last_num)
     {
-	INPUT.init(last_num, 8, 8);
-	C_1.init_1(&INPUT, 3, 5, 5, true, 0, 1.0);
-	MP_2.init_1(&C_1, 2, 2);
+	INPUT.init(last_num, 10, 10);
+	C_1.init_1(&INPUT, 4, 5, 5, true, 0, 1.0);
+	MP_2.init_1(&C_1, 3, 3);
 	C_1.init_2(&MP_2);
 	FC_3.init_1(&MP_2, 1, true, 1);
 	MP_2.init_2(&FC_3, true);

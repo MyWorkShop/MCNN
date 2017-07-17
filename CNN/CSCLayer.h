@@ -1,4 +1,4 @@
-#define SCNN_SIZE 8
+#define SCNN_SIZE 10
 
 class CSC_Layer : public Calculate_Layer
 {
@@ -154,20 +154,20 @@ void CSC_Layer::change_weight(float eta)
 	{
 	    for (int k = 0; k < n; k++)
 	    {
-		fliter[i][0][0].change_weight(&fliter[i][j][k],eta);
+		fliter[i][j][k].change_weight(&fliter[i][j][k],eta);
 	    }
 	}
     }
-    for (int i = 0; i < num; i++)
-    {
-	for (int j = 0; j < m; j++)
-	{
-	    for (int k = 0; k < n; k++)
-	    {
-		fliter[i][j][k].copy_weight(&fliter[i][0][0]);
-	    }
-	}
-    }
+    // for (int i = 0; i < num; i++)
+    // {
+	// for (int j = 0; j < m; j++)
+	// {
+	//     for (int k = 0; k < n; k++)
+	//     {
+	// 	fliter[i][j][k].copy_weight(&fliter[i][0][0]);
+	//     }
+	// }
+    // }
 }
 
 void CSC_Layer::change_weight(CSC_Layer *source, float eta)
@@ -178,20 +178,20 @@ void CSC_Layer::change_weight(CSC_Layer *source, float eta)
 	{
 	    for (int k = 0; k < n; k++)
 	    {
-		fliter[i][0][0].change_weight(&(source->fliter[i][j][k]), eta);
+		fliter[i][j][k].change_weight(&(source->fliter[i][j][k]), eta);
 	    }
 	}
     }
-    for (int i = 0; i < num; i++)
-    {
-	for (int j = 0; j < m; j++)
-	{
-	    for (int k = 0; k < n; k++)
-	    {
-		fliter[i][j][k].copy_weight(&fliter[i][0][0]);
-	    }
-	}
-    }
+    // for (int i = 0; i < num; i++)
+    // {
+	// for (int j = 0; j < m; j++)
+	// {
+	//     for (int k = 0; k < n; k++)
+	//     {
+	// 	fliter[i][j][k].copy_weight(&fliter[i][0][0]);
+	//     }
+	// }
+    // }
 }
 
 void CSC_Layer::copy_weight(CSC_Layer *source)

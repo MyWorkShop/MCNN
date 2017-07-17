@@ -33,8 +33,8 @@ void input_MNIST(MNISTImg input, int index)
     {
 	for (int j = 0; j < 28; j++)
 	{
-	    CNN[index].INPUT.y.d[0][i][j] = input.ImgData[i][j];
-	    // CNN[index].INPUT.y.d[0][i + 2][j + 2] = input.ImgData[i][j];
+	    // CNN[index].INPUT.y.d[0][i][j] = input.ImgData[i][j];
+	    CNN[index].INPUT.y.d[0][i + 2][j + 2] = input.ImgData[i][j];
 	}
     }
 }
